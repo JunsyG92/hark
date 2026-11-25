@@ -15,6 +15,9 @@ Lire d'abord `docs/architecture.md` et `docs/decisions.md`.
 - Validation stricte des entrées (`extra="forbid"`), aucune exécution de code fourni par un plugin.
 - **Aucun appel réseau hors loopback** est appliqué par `net/guard.py`. Tout nouveau code qui voudrait le réseau doit
   passer par une action explicite de l'utilisateur et `allow_network()` ; ne jamais désactiver la garde.
+- **Électron aussi doit rester local** : `app/src/main/network.ts` (interrupteurs Chromium, noms non locaux irrésolvables,
+  requêtes non locales annulées). Après toute mise à jour d'Électron ou ajout de code réseau côté app : `scripts/audit-network.sh`
+  doit afficher OK. Ne jamais appeler une URL non locale depuis `app/`.
 - **Jamais de vraies données de réunion dans les tests** : audio et transcriptions synthétiques uniquement.
 
 ## Commandes

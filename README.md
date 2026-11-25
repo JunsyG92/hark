@@ -131,6 +131,8 @@ quittera ta machine, fournis une clé (rangée dans le gestionnaire d'identifian
 
 ## Confidentialité
 
+> Détails, limites et **script de vérification** : [`docs/privacy.md`](docs/privacy.md) (`scripts/audit-network.sh`).
+
 - **Rien ne quitte ta machine par défaut.** Pas de télémétrie. Transcription et LLM locaux.
   Un fournisseur LLM cloud existera, **désactivé par défaut**, activable seulement par configuration explicite.
 - **Consentement** : aucun enregistrement sans clic explicite ; indicateur rouge permanent pendant

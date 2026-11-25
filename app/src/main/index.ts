@@ -1,4 +1,4 @@
-import { Notification, app, dialog, globalShortcut, ipcMain } from 'electron'
+import { Notification, app, dialog, globalShortcut, ipcMain, session } from 'electron'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { forward, validateApiRequest } from './apiProxy'
@@ -15,6 +15,7 @@ import {
 import { Engine, resolveEngineCommand } from './engine'
 import { EngineEvents } from './events'
 import { parseSaveRequest } from './files'
+import { OFFLINE_SWITCHES, blockNonLocalRequests } from './network'
 import { OverlayWindow } from './overlay'
 import { SettingsStore, isValidAccelerator, type AppSettings } from './settings'
 import { ToastWindow } from './toast'
@@ -24,6 +25,7 @@ import { KanbanWindow } from './window'
 const log = (msg: string): void => console.log(`[hark] ${msg}`)
 
 app.setName('Hark')
+for (const [name, value] of OFFLINE_SWITCHES) app.commandLine.appendSwitch(name, value)
 if (process.platform === 'linux') {
   // Global shortcuts on Wayland go through the XDG desktop portal.
   app.commandLine.appendSwitch('enable-features', 'GlobalShortcutsPortal')
@@ -37,6 +39,7 @@ if (!app.requestSingleInstanceLock()) {
 
 async function main(): Promise<void> {
   await app.whenReady()
+  blockNonLocalRequests(session.defaultSession, (url) => log(`BLOCKED non-local request: ${url}`))
   const settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'))
   const kanban = new KanbanWindow(log)
   const toast = new ToastWindow()
