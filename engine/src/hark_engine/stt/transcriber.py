@@ -56,6 +56,26 @@ def pick_language(all_probs: list[tuple[str, float]], allowed: tuple[str, ...]) 
     return best[0] if best else None
 
 
+SAMPLE_RATE = 16_000
+
+
+def load_audio(path: Path) -> Any:
+    """Our recordings are already 16 kHz WAV: read them directly (no PyAV/ffmpeg decoder).
+
+    faster-whisper's own decoder breaks with some PyAV releases (e.g. `metadata_errors` removed in
+    PyAV 19), and handing it a float32 array avoids that code path entirely.
+    """
+    import numpy as np
+    import soundfile as sf
+
+    data, rate = sf.read(str(path), dtype="float32", always_2d=True)
+    mono = data.mean(axis=1) if data.shape[1] > 1 else data[:, 0]
+    if rate != SAMPLE_RATE and len(mono):  # not produced by Hark; keep it robust anyway
+        target = int(len(mono) * SAMPLE_RATE / rate)
+        mono = np.interp(np.linspace(0, len(mono) - 1, target), np.arange(len(mono)), mono)
+    return np.ascontiguousarray(mono, dtype=np.float32)
+
+
 class FasterWhisperTranscriber:
     """Local transcription with faster-whisper. Loads model files only (local_files_only)."""
 
@@ -93,20 +113,18 @@ class FasterWhisperTranscriber:
         language: str,
         on_progress: Callable[[float], None],
     ) -> tuple[list[RawSegment], str]:
-        from faster_whisper.audio import decode_audio
-
         with self._lock:
             model = self._model(profile)
+            audio = load_audio(path)
             lang: str | None = None if language == "auto" else language
             if lang is None:
-                audio = decode_audio(str(path), sampling_rate=16000)
                 try:
                     _, _, probs = model.detect_language(audio)
                     lang = pick_language(list(probs), ALLOWED_AUTO_LANGUAGES)
                 except Exception:
                     log.warning("language detection failed; letting whisper decide")
             segments, info = model.transcribe(
-                str(path),
+                audio,
                 language=lang,
                 vad_filter=True,  # skips silence (the mic track is mostly silent)
                 vad_parameters={"min_silence_duration_ms": 500},

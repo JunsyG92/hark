@@ -42,3 +42,9 @@ git pull && pnpm install && (cd engine && uv sync) && pnpm --filter @hark/app de
   dans l'environnement de développement (réseau vers Hugging Face bloqué) : lance
   `HARK_TEST_REAL_STT=1 uv run pytest tests/test_real_stt.py -s` pour le vérifier chez toi.
 - Une réunion de 30 min prend de quelques minutes (GPU / modèle léger) à plusieurs dizaines de minutes (CPU, modèle précis).
+
+## Correctif (après premier essai réel)
+- `TypeError: open() got an unexpected keyword argument 'metadata_errors'` : PyAV 19 a retiré une option que le décodeur
+  de faster-whisper 1.2.1 lui passe. Hark lit maintenant lui-même ses WAV 16 kHz (`soundfile`) et donne le signal à
+  faster-whisper, sans passer par PyAV/ffmpeg. Test de non-régression avec un faux modèle (`test_faster_whisper_receives_a_float32_array_not_a_file_path`).
+- Les réunions déjà enregistrées gardent leur audio : ouvre la réunion → **Transcrire** (ou **Retranscrire**).

@@ -322,3 +322,39 @@ def test_full_flow_makes_no_outbound_connection(db: Database, tmp_path: Path, gu
     finally:
         e.service.stop()
     assert blocked_attempts() == []
+
+
+def test_faster_whisper_receives_a_float32_array_not_a_file_path(tmp_path: Path):
+    """Regression: PyAV 19 broke faster-whisper's own decoder (`metadata_errors`). We must hand it
+    a decoded array, so it never calls av.open. Checked with a stub model (no download needed)."""
+    from types import SimpleNamespace
+
+    from hark_engine.stt.transcriber import FasterWhisperTranscriber, load_audio
+
+    wav = tmp_path / "t.wav"
+    sf.write(str(wav), np.full(32000, 0.1, dtype="float32"), 16000, subtype="PCM_16")
+    seen: dict[str, Any] = {}
+
+    class StubModel:
+        def detect_language(self, audio: Any) -> Any:
+            seen["detect"] = audio
+            return "de", 0.5, [("de", 0.5), ("fr", 0.3), ("en", 0.2)]
+
+        def transcribe(self, audio: Any, **kwargs: Any) -> Any:
+            seen["transcribe"], seen["kwargs"] = audio, kwargs
+            seg = SimpleNamespace(start=0.0, end=1.0, text=" Bonjour ")
+            return iter([seg]), SimpleNamespace(duration=2.0, language=kwargs["language"])
+
+    manager = ModelManager(tmp_path, resolver=lambda *_: "x")
+    t = FasterWhisperTranscriber(manager)
+    t._model = lambda profile: StubModel()  # type: ignore[method-assign]
+    progress: list[float] = []
+    segs, lang = t.transcribe(wav, ModelProfileId.LIGHT, "auto", progress.append)
+    audio = seen["transcribe"]
+    assert isinstance(audio, np.ndarray) and audio.dtype == np.float32 and audio.shape == (32000,)
+    assert seen["detect"] is not None and seen["kwargs"]["language"] == "fr"  # fr/en only
+    assert [s.text for s in segs] == ["Bonjour"] and lang == "fr" and progress[-1] == 1.0
+    assert load_audio(wav).shape == (32000,)
+    stereo = tmp_path / "s.wav"
+    sf.write(str(stereo), np.zeros((8000, 2), dtype="float32"), 8000, subtype="PCM_16")
+    assert load_audio(stereo).shape == (16000,)  # mono + resampled to 16 kHz
