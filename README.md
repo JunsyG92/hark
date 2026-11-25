@@ -27,7 +27,17 @@ Notes par étape : [`docs/increments/`](docs/increments/).
 
 ## Installation (développement)
 
-Prérequis : Node 20+, [pnpm](https://pnpm.io) 10, [uv](https://docs.astral.sh/uv/), Python 3.11+.
+Prérequis : Node 20+, [pnpm](https://pnpm.io) 10 (`npm install -g pnpm`) et
+[uv](https://docs.astral.sh/uv/) (installe aussi Python 3.11+ tout seul) :
+
+```bash
+# Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+```powershell
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
 
 ```bash
 pnpm install
