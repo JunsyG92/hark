@@ -77,6 +77,12 @@ export class ToastWindow {
     else win.webContents.once('did-finish-load', send)
   }
 
+  /** Bring the toast to the front (e.g. when the user clicks the system notification). */
+  raise(): void {
+    this.win?.show()
+    this.win?.focus()
+  }
+
   hide(): void {
     this.current = null
     this.win?.hide()

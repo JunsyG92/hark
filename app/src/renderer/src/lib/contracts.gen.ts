@@ -94,6 +94,16 @@ export interface DetectionStatus {
   mic_apps: string[];
   audio_source: string | null;
   error: string | null;
+  /**
+   * Which mechanism reads the mic state on this OS.
+   */
+  mic_probe: string;
+  mic_probe_error: string | null;
+  cooldown_remaining_s: number;
+  /**
+   * Why no notification is shown right now (codes).
+   */
+  blockers: string[];
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema

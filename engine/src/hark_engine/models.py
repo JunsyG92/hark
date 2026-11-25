@@ -166,6 +166,10 @@ class DetectionStatus(Strict):
     mic_apps: list[str]
     audio_source: str | None
     error: str | None
+    mic_probe: str = Field(description="Which mechanism reads the mic state on this OS.")
+    mic_probe_error: str | None
+    cooldown_remaining_s: float
+    blockers: list[str] = Field(description="Why no notification is shown right now (codes).")
 
 
 class PromptResponse(Strict):

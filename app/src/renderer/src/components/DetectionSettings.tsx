@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createApi, type DetectionSettings, type DetectionStatus } from '../lib/api'
-import { PHASE_LABEL, dbToPercent, micLabel } from '../lib/detection'
+import { PHASE_LABEL, blockerText, dbToPercent, micLabel } from '../lib/detection'
 
 /** Live meter + tuning for meeting detection. Observation only: nothing is recorded here. */
 export function DetectionSection() {
@@ -60,6 +60,17 @@ export function DetectionSection() {
             État : {PHASE_LABEL[status.phase]}
           </p>
           {status.error && <p className="modal__error">Audio indisponible : {status.error}</p>}
+          {status.mic_probe_error && (
+            <p className="modal__source">Lecture de l’état du micro impossible ({status.mic_probe_error}) : la notification n’est pas filtrée.</p>
+          )}
+          {status.blockers.length > 0 && (
+            <p className="modal__source" data-testid="blockers">
+              Pas de notification pour l’instant :
+              {status.blockers.map((b) => (
+                <span key={b}><br />• {blockerText(b, status.cooldown_remaining_s)}</span>
+              ))}
+            </p>
+          )}
         </div>
       )}
       <label>

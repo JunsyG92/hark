@@ -64,7 +64,7 @@ describe('Detection settings', () => {
       if (req.path === '/v1/settings/detection' && req.method === 'GET')
         return { status: 200, body: { enabled: true, threshold_db: -45, min_seconds: 8, require_mic_in_use: true, prompt_seconds: 20, cooldown_ignore_minutes: 10, cooldown_decline_minutes: 30 } }
       if (req.path === '/v1/detection/status')
-        return { status: 200, body: { phase: 'idle', level_db: -32.4, above_threshold_seconds: 3.5, mic_in_use: true, mic_apps: ['Teams'], audio_source: 'system-output-loopback', error: null } }
+        return { status: 200, body: { phase: 'idle', level_db: -32.4, above_threshold_seconds: 3.5, mic_in_use: true, mic_apps: ['Teams'], audio_source: 'system-output-loopback', error: null, mic_probe: 'pactl', mic_probe_error: null, cooldown_remaining_s: 0, blockers: ['mic_not_in_use'] } }
       if (req.path === '/v1/settings/transcription') return { status: 200, body: { profile: 'balanced', language: 'auto', auto_transcribe: true, retention_days: 0 } }
       if (req.path === '/v1/transcription/status') return { status: 200, body: { queue: [], current_meeting_id: null, progress: 0, model_installed: false, download: { state: 'idle', profile: null, error: null } } }
       if (req.path === '/v1/settings/recording') return { status: 200, body: { silence_minutes: 3, silence_threshold_db: -45 } }
@@ -80,6 +80,7 @@ describe('Detection settings', () => {
     await act(async () => render(<SettingsPanel onClose={() => {}} />))
     expect(await screen.findByText(/Niveau : -32 dB/)).toBeTruthy()
     expect(screen.getByText(/oui \(Teams\)/)).toBeTruthy()
+    expect(screen.getByTestId('blockers').textContent).toContain('Aucune application n’utilise le micro')
     await act(async () => fireEvent.click(screen.getByText('Tester la notification')))
     expect(api).toHaveBeenCalledWith({ method: 'POST', path: '/v1/detection/test', body: undefined })
     expect(await screen.findByText(/Notification de test envoyée/)).toBeTruthy()

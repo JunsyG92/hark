@@ -41,6 +41,33 @@ class DetectionMachine:
     def above_seconds(self, now: float) -> float:
         return 0.0 if self._above_since is None else max(0.0, now - self._above_since)
 
+    def cooldown_remaining(self, now: float) -> float:
+        if self._phase is not DetectionPhase.COOLDOWN:
+            return 0.0
+        return max(0.0, self._cooldown_until - now)
+
+    def blockers(self, now: float, level_db: float | None, mic_in_use: bool | None) -> list[str]:
+        """Human-diagnosable reasons why no prompt is shown right now (codes, see the UI)."""
+        s = self.settings
+        if not s.enabled:
+            return ["disabled"]
+        if self._phase is DetectionPhase.PROMPTED:
+            return ["prompt_showing"]
+        if self._phase is DetectionPhase.RECORDING:
+            return ["recording"]
+        if self._phase is DetectionPhase.COOLDOWN:
+            return ["cooldown"]
+        out: list[str] = []
+        if level_db is None:
+            out.append("no_audio")
+        elif self._above_since is None:
+            out.append("below_threshold")
+        elif self.above_seconds(now) < s.min_seconds:
+            out.append("waiting_duration")
+        if s.require_mic_in_use and mic_in_use is False:
+            out.append("mic_not_in_use")
+        return out
+
     def update_settings(self, settings: DetectionSettings) -> None:
         self.settings = settings
         if not settings.enabled:
@@ -75,8 +102,9 @@ class DetectionMachine:
 
         if self._above_since is None or now - self._above_since < self.settings.min_seconds:
             return None
-        if self.settings.require_mic_in_use and mic_in_use is not True:
+        if self.settings.require_mic_in_use and mic_in_use is False:
             return None  # e.g. a YouTube video alone: loud, but no app is using the mic
+        # mic_in_use is None = the OS does not tell us: do not block (the user can still say "Non")
         return self._open_prompt(now, level_db, app or "application inconnue")
 
     def force_prompt(self, now: float, app: str = "test") -> Prompt | None:

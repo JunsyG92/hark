@@ -176,4 +176,8 @@ class DetectorService:
                 mic_apps=list(mic.apps) if mic else [],
                 audio_source=self._source.name if self._source else None,
                 error=self._error,
+                mic_probe=self._probe.name,
+                mic_probe_error=self._probe.last_error if mic is None else None,
+                cooldown_remaining_s=round(self._machine.cooldown_remaining(now), 0),
+                blockers=self._machine.blockers(now, self._level, mic.in_use if mic else None),
             )

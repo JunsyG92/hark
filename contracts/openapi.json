@@ -1493,6 +1493,34 @@
               }
             ],
             "title": "Error"
+          },
+          "mic_probe": {
+            "type": "string",
+            "title": "Mic Probe",
+            "description": "Which mechanism reads the mic state on this OS."
+          },
+          "mic_probe_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mic Probe Error"
+          },
+          "cooldown_remaining_s": {
+            "type": "number",
+            "title": "Cooldown Remaining S"
+          },
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Blockers",
+            "description": "Why no notification is shown right now (codes)."
           }
         },
         "additionalProperties": false,
@@ -1504,7 +1532,11 @@
           "mic_in_use",
           "mic_apps",
           "audio_source",
-          "error"
+          "error",
+          "mic_probe",
+          "mic_probe_error",
+          "cooldown_remaining_s",
+          "blockers"
         ],
         "title": "DetectionStatus"
       },

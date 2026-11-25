@@ -72,6 +72,22 @@ def test_call_emits_meeting_detected_with_consent_reminder(parts):
     assert svc.status().phase == DetectionPhase.PROMPTED
 
 
+def test_status_tells_why_there_is_no_notification(parts):
+    svc, clock, events = parts
+    svc._mic = MicStatus(False, ())
+    drive(svc, clock, 3, -28)
+    st = svc.status()
+    assert "mic_not_in_use" in st.blockers and "waiting_duration" in st.blockers
+    assert st.mic_in_use is False and st.mic_probe == "unsupported"
+
+
+def test_unknown_mic_state_still_prompts_and_is_explained(parts):
+    svc, clock, events = parts
+    svc._mic = None  # probe unavailable (e.g. pactl missing)
+    drive(svc, clock, 12, -28)
+    assert len(events) == 1 and svc.status().mic_probe_error
+
+
 def test_youtube_only_emits_nothing(parts):
     svc, clock, events = parts
     svc._mic = MicStatus(False, ())

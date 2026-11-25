@@ -26,6 +26,7 @@ class MicStatus:
 
 class MicProbe(Protocol):
     name: str
+    last_error: str | None
 
     def read(self) -> MicStatus | None:
         """None when the OS does not expose this information."""
@@ -34,6 +35,7 @@ class MicProbe(Protocol):
 
 class NullProbe:
     name = "unsupported"
+    last_error: str | None = "not supported on this system"
 
     def read(self) -> MicStatus | None:
         return None
@@ -78,6 +80,7 @@ def parse_source_outputs(long_output: str, sources: dict[str, str]) -> MicStatus
 
 class PactlProbe:
     name = "pactl"
+    last_error: str | None = None
 
     def _run(self, *args: str) -> str:
         return subprocess.run(  # noqa: S603
@@ -92,9 +95,18 @@ class PactlProbe:
     def read(self) -> MicStatus | None:
         try:
             sources = parse_pactl_sources(self._run("list", "short", "sources"))
-            return parse_source_outputs(self._run("list", "source-outputs"), sources)
-        except (OSError, subprocess.SubprocessError):
+            status = parse_source_outputs(self._run("list", "source-outputs"), sources)
+        except FileNotFoundError:
+            self.last_error = "pactl not found (install pulseaudio-utils)"
             return None
+        except subprocess.CalledProcessError as exc:
+            self.last_error = f"pactl failed: {(exc.stderr or '').strip()[:150] or exc.returncode}"
+            return None
+        except (OSError, subprocess.SubprocessError) as exc:
+            self.last_error = f"{type(exc).__name__}: {exc}"[:200]
+            return None
+        self.last_error = None
+        return status
 
 
 # ---- Windows (CapabilityAccessManager consent store) -----------------------------
@@ -113,11 +125,13 @@ class WindowsRegistryProbe:
     """Windows records when each app starts/stops using the microphone (privacy indicator)."""
 
     name = "windows-consent-store"
+    last_error: str | None = None
 
     def read(self) -> MicStatus | None:
         try:
             import winreg
         except ImportError:  # pragma: no cover
+            self.last_error = "winreg unavailable"
             return None
         apps: list[str] = []
         try:
@@ -128,8 +142,10 @@ class WindowsRegistryProbe:
                         self._scan(winreg, non_packaged, apps)
                 except OSError:
                     pass
-        except OSError:
+        except OSError as exc:
+            self.last_error = f"registry unavailable: {exc}"[:200]
             return None
+        self.last_error = None
         apps = [a for a in apps if a.lower() not in IGNORED_APPS]
         return MicStatus(in_use=bool(apps), apps=tuple(dict.fromkeys(apps)))
 

@@ -50,7 +50,10 @@ def test_mic_signal_required_only_when_configured():
     audio_only = DetectionMachine(DetectionSettings(require_mic_in_use=False))
     assert run(audio_only, 20, LOUD, mic=None)[0] is not None
     strict = DetectionMachine(DetectionSettings(require_mic_in_use=True))
-    assert run(strict, 20, LOUD, mic=None)[0] is None  # unsupported OS probe -> no prompt
+    assert run(strict, 20, LOUD, mic=False)[0] is None  # a video alone: mic not used
+    # OS cannot tell (probe unavailable): do not silently block forever, ask the user
+    unknown = DetectionMachine(DetectionSettings(require_mic_in_use=True))
+    assert run(unknown, 20, LOUD, mic=None)[0] is not None
 
 
 def test_timeout_is_ignore_with_cooldown():
@@ -99,3 +102,19 @@ def test_disabled_never_prompts_and_force_prompt_works():
     m2 = DetectionMachine(DetectionSettings())
     assert m2.force_prompt(0.0) is not None
     assert m2.force_prompt(1.0) is None  # one prompt at a time
+
+
+def test_blockers_explain_why_nothing_is_shown():
+    m = DetectionMachine(DetectionSettings(min_seconds=8))
+    assert m.blockers(0, None, True) == ["no_audio"]
+    assert m.blockers(0, QUIET, True) == ["below_threshold"]
+    m.feed(0, LOUD, False)
+    m.feed(3, LOUD, False)
+    assert m.blockers(3, LOUD, False) == ["waiting_duration", "mic_not_in_use"]
+    assert m.blockers(3, LOUD, None) == ["waiting_duration"]
+    m.feed(9, LOUD, True)
+    assert m.blockers(9, LOUD, True) == ["prompt_showing"]
+    m.respond(9, m.prompt.id, PromptAction.DECLINE)  # type: ignore[union-attr]
+    assert m.blockers(10, LOUD, True) == ["cooldown"] and m.cooldown_remaining(10) > 1700
+    m.update_settings(DetectionSettings(enabled=False))
+    assert m.blockers(10, LOUD, True) == ["disabled"]

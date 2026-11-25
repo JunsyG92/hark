@@ -43,6 +43,17 @@ def test_windows_registry_names():
     assert app_label_from_registry_name("MSTeams_8wekyb3d8bbwe") == "MSTeams"
 
 
+def test_pactl_missing_is_reported_not_silent(monkeypatch):
+    from hark_engine.detect.probes import PactlProbe
+
+    def boom(*a, **k):
+        raise FileNotFoundError("pactl")
+
+    monkeypatch.setattr("hark_engine.detect.probes.subprocess.run", boom)
+    probe = PactlProbe()
+    assert probe.read() is None and "pulseaudio-utils" in (probe.last_error or "")
+
+
 def test_default_probe_per_platform():
     assert default_probe("linux").name == "pactl"
     assert default_probe("win32").name == "windows-consent-store"

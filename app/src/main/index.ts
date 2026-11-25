@@ -171,7 +171,18 @@ async function main(): Promise<void> {
     (ev) => {
       if (ev.type === 'meeting.detected') {
         const prompt = parseDetected(ev.data)
-        if (prompt) toast.show(prompt)
+        if (prompt) {
+          toast.show(prompt)
+          // Backup for desktops where an always-on-top window can be hidden or missed.
+          if (Notification.isSupported()) {
+            const n = new Notification({
+              title: 'Hark — réunion détectée',
+              body: `${prompt.app && prompt.app !== 'test' ? `${prompt.app} · ` : ''}Enregistrer ? ${prompt.reminder} Clique ici pour répondre.`,
+            })
+            n.on('click', () => toast.raise())
+            n.show()
+          }
+        }
       } else if (ev.type === 'meeting.recording_started') {
         const info = parseRecordingStarted(ev.data)
         toast.hide()

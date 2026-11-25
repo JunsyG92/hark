@@ -36,3 +36,12 @@ git pull && pnpm install && (cd engine && uv sync) && pnpm --filter @hark/app de
 - macOS : pas de capture du son système ni de signal micro (version ultérieure).
 - Un appel où le micro est coupé au niveau du système (flux fermé) n'est pas détecté tant qu'il n'est pas rouvert.
 - La détection suit la sortie audio par défaut ; si elle change, l'écoute est rouverte (≈ 15 s).
+
+## Correctif : « pas de notification alors que le son dépasse le seuil »
+- Réglages → Détection affiche maintenant **« Pas de notification pour l'instant : … »** avec la raison exacte
+  (micro non utilisé, durée pas atteinte, pause après un « Non », son sous le seuil, détection désactivée…) et la raison
+  pour laquelle l'état du micro est illisible (ex. `pactl` introuvable → installe `pulseaudio-utils`).
+- Si Hark **ne peut pas lire** l'état du micro, il ne bloque plus la notification (avant : jamais de notification).
+  Il ne filtre que lorsqu'il sait qu'aucune application n'utilise le micro.
+- La notification s'accompagne d'une **notification système** (clic = ramène la fenêtre au premier plan), au cas où la
+  petite fenêtre serait masquée par ton bureau.
