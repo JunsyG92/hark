@@ -48,6 +48,11 @@ pnpm dev
 Systèmes : **Windows et Linux** pour le MVP. macOS : l'interface fonctionne, la capture du son
 système arrivera dans une version ultérieure.
 
+Linux : si Electron s'arrête avec « The SUID sandbox helper binary was found, but is not configured
+correctly », fais une fois `sudo chown root:root` puis `sudo chmod 4755` sur
+`node_modules/.pnpm/electron@*/node_modules/electron/dist/chrome-sandbox`, ou (dev uniquement) lance
+`pnpm --filter @hark/app dev:nosandbox`.
+
 Linux : l'icône de zone de notification nécessite un support AppIndicator (sous GNOME, l'extension
 « AppIndicator and KStatusNotifierItem Support »). Sous Wayland, le raccourci global passe par le portail
 XDG ; ton bureau peut te demander de le confirmer.

@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "contracts:types": "node scripts/gen-contract-types.mjs",
-    "e2e": "node e2e/smoke.cjs"
+    "e2e": "node e2e/smoke.cjs",
+    "dev:nosandbox": "electron-vite dev -- --no-sandbox"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.3",
