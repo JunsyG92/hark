@@ -143,3 +143,57 @@ def test_accepting_the_prompt_starts_recording_with_fake_audio(db, bus, tmp_path
     assert (
         c.patch(f"/v1/meetings/{stopped['id']}", json={"title": "Revue"}).json()["title"] == "Revue"
     )
+
+
+def test_history_endpoints(db, bus, tmp_path):
+    from hark_engine.api import create_app
+    from tests.test_transcription import Env, make_meeting  # noqa: PLC0415
+
+    e = Env(db, tmp_path)
+    app = create_app(db, "tok", e.bus, transcription=e.service, models=e.models)
+    e.service.start()
+    c = TestClient(app, headers={"Authorization": "Bearer tok"})
+    anon = TestClient(app)
+    try:
+        mid = make_meeting(e.repo, e.audio, title="Point budget")
+        e.service.submit(mid)
+        for _ in range(100):
+            if e.repo.get(mid).transcription.value == "done":
+                break
+            __import__("time").sleep(0.03)
+        assert anon.get("/v1/search?q=budget").status_code == 401
+        assert c.get("/v1/search", params={"q": "budget"}).json()[0]["meeting_id"] == mid
+        assert c.get("/v1/search", params={"q": ""}).json() == []
+        seg = c.get(f"/v1/meetings/{mid}/transcript").json()
+        assert [s["speaker"] for s in seg] == ["others", "me"]
+        assert c.get("/v1/meetings/unknown/transcript").status_code == 404
+        md = c.get(f"/v1/meetings/{mid}/export.md")
+        assert (
+            md.headers["content-type"].startswith("text/markdown") and "# Point budget" in md.text
+        )
+        task = c.post("/v1/tasks/propose", json={"title": "Envoyer le budget"}).json()
+        assert task["column"] == "to_validate"
+        assert c.get("/v1/meetings").json()[0]["transcription"] == "done"
+        assert c.post(f"/v1/meetings/{mid}/transcribe").status_code == 409  # audio already deleted
+        assert anon.delete(f"/v1/meetings/{mid}").status_code == 401
+        assert c.delete(f"/v1/meetings/{mid}").status_code == 204
+        assert c.get(f"/v1/meetings/{mid}").status_code == 404
+    finally:
+        e.service.stop()
+
+
+def test_models_and_transcription_settings_endpoints(client: TestClient, anon: TestClient):
+    assert anon.get("/v1/models").status_code == 401
+    models = client.get("/v1/models").json()
+    assert [m["id"] for m in models] == ["light", "balanced", "accurate", "best"]
+    assert sum(m["recommended"] for m in models) == 1 and not any(m["installed"] for m in models)
+    assert client.get("/v1/settings/transcription").json()["retention_days"] == 0
+    ok = client.patch("/v1/settings/transcription", json={"retention_days": 30, "language": "fr"})
+    assert ok.json()["retention_days"] == 30 and ok.json()["language"] == "fr"
+    assert client.patch("/v1/settings/transcription", json={"retention_days": 5}).status_code == 422
+    assert client.patch("/v1/settings/transcription", json={"language": "de"}).status_code == 422
+    assert client.patch("/v1/settings/transcription", json={"profile": "huge"}).status_code == 422
+    assert client.post("/v1/models/download", json={"profile": "nope"}).status_code == 422
+    assert anon.post("/v1/models/download", json={"profile": "light"}).status_code == 401
+    st = client.get("/v1/transcription/status").json()
+    assert st["queue"] == [] and st["model_installed"] is False

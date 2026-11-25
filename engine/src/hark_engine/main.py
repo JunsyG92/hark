@@ -33,8 +33,10 @@ from .detect import DetectorService
 from .detect.probes import default_probe
 from .events import EventBus
 from .models import TrackKind
+from .net import install_guard
 from .record import Recorder
 from .store import Database, MeetingRepository, SettingsRepository
+from .stt import FakeTranscriber, FasterWhisperTranscriber, ModelManager, TranscriptionService
 
 log = logging.getLogger("hark")
 
@@ -80,6 +82,12 @@ def main(argv: list[str] | None = None) -> None:
         level=logging.INFO, stream=sys.stderr, format="%(levelname)s %(name)s %(message)s"
     )
 
+    # Local-first: no outbound network from this process (explicit model downloads excepted),
+    # and Hugging Face never goes online on its own.
+    os.environ.setdefault("HF_HUB_OFFLINE", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+    install_guard()
+
     port = _pick_port(args.port)
     settings = Settings(data_dir=args.data_dir, port=port)
     settings.ensure_dirs()
@@ -104,7 +112,23 @@ def main(argv: list[str] | None = None) -> None:
     recovered = recorder.recover_interrupted()
     if recovered:
         log.warning("closed %d meeting(s) left open by a previous crash", recovered)
-    app = create_app(db, token, bus, detector, recorder)
+    fake_stt = os.environ.get("HARK_FAKE_STT") == "1"
+    models = (
+        ModelManager(settings.data_dir / "models", resolver=lambda *_: "fake")
+        if fake_stt
+        else ModelManager(settings.data_dir / "models")
+    )
+    meetings_repo = MeetingRepository(db)
+    stt = TranscriptionService(
+        meetings_repo,
+        SettingsRepository(db),
+        bus,
+        models,
+        FakeTranscriber() if fake_stt else FasterWhisperTranscriber(models),
+    )
+    models.on_installed = stt.on_model_installed
+    app = create_app(db, token, bus, detector, recorder, stt, models)
+    stt.start()
     detector.start()
 
     settings.runtime_file.write_text(
@@ -133,6 +157,7 @@ def main(argv: list[str] | None = None) -> None:
         server.run()
     finally:
         recorder.stop()  # no-op if the API lifespan already finalized it
+        stt.stop()
         detector.stop()
         db.close()
         settings.runtime_file.unlink(missing_ok=True)

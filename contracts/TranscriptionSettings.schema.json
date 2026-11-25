@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/TranscriptionSettings.json",
+  "$defs": {
+    "ModelProfileId": {
+      "enum": [
+        "light",
+        "balanced",
+        "accurate",
+        "best"
+      ],
+      "title": "ModelProfileId",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "profile": {
+      "$ref": "#/$defs/ModelProfileId",
+      "default": "balanced"
+    },
+    "language": {
+      "default": "auto",
+      "enum": [
+        "auto",
+        "fr",
+        "en"
+      ],
+      "title": "Language",
+      "type": "string"
+    },
+    "auto_transcribe": {
+      "default": true,
+      "title": "Auto Transcribe",
+      "type": "boolean"
+    },
+    "retention_days": {
+      "default": 0,
+      "description": "Days to keep the audio after a successful transcription (0 = delete).",
+      "enum": [
+        0,
+        7,
+        30
+      ],
+      "title": "Retention Days",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "profile",
+    "language",
+    "auto_transcribe",
+    "retention_days"
+  ],
+  "title": "TranscriptionSettings",
+  "type": "object"
+}

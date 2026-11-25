@@ -200,6 +200,29 @@ class TrackKind(StrEnum):
     MIC = "mic"  # me
 
 
+class TranscriptionStatus(StrEnum):
+    NONE = "none"
+    PENDING = "pending"  # waiting (queue, or model not installed yet)
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+
+
+class Speaker(StrEnum):
+    ME = "me"  # microphone track
+    OTHERS = "others"  # system output track
+
+
+class TranscriptSegment(Strict):
+    id: int
+    meeting_id: str
+    track: TrackKind
+    speaker: Speaker
+    start_ms: int = Field(ge=0)
+    end_ms: int = Field(ge=0)
+    text: str
+
+
 class Meeting(Strict):
     id: str
     title: ShortText = ""
@@ -210,6 +233,10 @@ class Meeting(Strict):
     duration_ms: int | None = None
     tracks: list[TrackKind]
     audio_available: bool = Field(description="Audio files still on disk (see retention).")
+    transcription: TranscriptionStatus = TranscriptionStatus.NONE
+    transcription_error: str | None = None
+    language: str | None = None
+    task_count: int = 0
 
 
 class RecordingStart(Strict):
@@ -244,6 +271,69 @@ class RecordingStatus(Strict):
     warnings: list[str]
 
 
+class ModelProfileId(StrEnum):
+    LIGHT = "light"
+    BALANCED = "balanced"
+    ACCURATE = "accurate"
+    BEST = "best"
+
+
+class ModelProfile(Strict):
+    id: ModelProfileId
+    label: str
+    description: str
+    whisper_model: str
+    download_mb: int
+    min_ram_gb: int
+    gpu_recommended: bool
+    installed: bool
+    recommended: bool
+
+
+class TranscriptionSettings(Strict):
+    profile: ModelProfileId = ModelProfileId.BALANCED
+    language: Literal["auto", "fr", "en"] = "auto"
+    auto_transcribe: bool = True
+    retention_days: Literal[0, 7, 30] = Field(
+        default=0,
+        description="Days to keep the audio after a successful transcription (0 = delete).",
+    )
+
+
+class TranscriptionSettingsPatch(Strict):
+    profile: ModelProfileId | None = None
+    language: Literal["auto", "fr", "en"] | None = None
+    auto_transcribe: bool | None = None
+    retention_days: Literal[0, 7, 30] | None = None
+
+
+class DownloadStatus(Strict):
+    state: Literal["idle", "downloading", "done", "error"]
+    profile: ModelProfileId | None = None
+    error: str | None = None
+
+
+class TranscriptionStatusInfo(Strict):
+    queue: list[str]
+    current_meeting_id: str | None
+    progress: float = Field(ge=0, le=1)
+    model_installed: bool
+    download: DownloadStatus
+
+
+class ModelDownloadRequest(Strict):
+    profile: ModelProfileId
+
+
+class SearchHit(Strict):
+    meeting_id: str
+    meeting_title: str
+    kind: Literal["title", "summary", "transcript"]
+    snippet: str = Field(description="Excerpt; matches wrapped in <mark>…</mark>.")
+    start_ms: int | None = None
+    speaker: Speaker | None = None
+
+
 # name -> (model, schema mode). Inputs use "validation", outputs "serialization".
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
@@ -256,4 +346,8 @@ CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "seriali
     "Meeting": (Meeting, "serialization"),
     "RecordingSettings": (RecordingSettings, "serialization"),
     "RecordingStatus": (RecordingStatus, "serialization"),
+    "TranscriptSegment": (TranscriptSegment, "serialization"),
+    "TranscriptionSettings": (TranscriptionSettings, "serialization"),
+    "ModelProfile": (ModelProfile, "serialization"),
+    "SearchHit": (SearchHit, "serialization"),
 }

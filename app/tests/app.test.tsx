@@ -65,6 +65,8 @@ describe('Detection settings', () => {
         return { status: 200, body: { enabled: true, threshold_db: -45, min_seconds: 8, require_mic_in_use: true, prompt_seconds: 20, cooldown_ignore_minutes: 10, cooldown_decline_minutes: 30 } }
       if (req.path === '/v1/detection/status')
         return { status: 200, body: { phase: 'idle', level_db: -32.4, above_threshold_seconds: 3.5, mic_in_use: true, mic_apps: ['Teams'], audio_source: 'system-output-loopback', error: null } }
+      if (req.path === '/v1/settings/transcription') return { status: 200, body: { profile: 'balanced', language: 'auto', auto_transcribe: true, retention_days: 0 } }
+      if (req.path === '/v1/transcription/status') return { status: 200, body: { queue: [], current_meeting_id: null, progress: 0, model_installed: false, download: { state: 'idle', profile: null, error: null } } }
       if (req.path === '/v1/settings/recording') return { status: 200, body: { silence_minutes: 3, silence_threshold_db: -45 } }
       if (req.path === '/v1/recording/status') return { status: 200, body: { recording: false, meeting_id: null, title: '', started_at: null, elapsed_s: 0, tracks: [], system_level_db: null, mic_level_db: null, silent_seconds: 0, silence_prompted: false, warnings: [] } }
       if (req.path === '/v1/detection/test') return { status: 202, body: { prompted: true } }

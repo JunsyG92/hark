@@ -9,11 +9,14 @@ from ..models import (
     DetectionSettingsPatch,
     RecordingSettings,
     RecordingSettingsPatch,
+    TranscriptionSettings,
+    TranscriptionSettingsPatch,
 )
 from .db import Database
 
 DETECTION_KEY = "detection"
 RECORDING_KEY = "recording"
+TRANSCRIPTION_KEY = "transcription"
 
 
 class SettingsRepository:
@@ -63,5 +66,28 @@ class SettingsRepository:
                 "INSERT INTO settings (key, value) VALUES (?, ?) "
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 (RECORDING_KEY, validated.model_dump_json()),
+            )
+        return validated
+
+    def get_transcription(self) -> TranscriptionSettings:
+        with self.db.read() as conn:
+            row = conn.execute(
+                "SELECT value FROM settings WHERE key = ?", (TRANSCRIPTION_KEY,)
+            ).fetchone()
+        if row is None:
+            return TranscriptionSettings()
+        try:
+            return TranscriptionSettings.model_validate(json.loads(row["value"]))
+        except ValueError:
+            return TranscriptionSettings()
+
+    def patch_transcription(self, patch: TranscriptionSettingsPatch) -> TranscriptionSettings:
+        merged = self.get_transcription().model_copy(update=patch.model_dump(exclude_none=True))
+        validated = TranscriptionSettings.model_validate(merged.model_dump())
+        with self.db.tx() as conn:
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?, ?) "
+                "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                (TRANSCRIPTION_KEY, validated.model_dump_json()),
             )
         return validated

@@ -13,6 +13,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ColumnView } from './components/ColumnView'
+import { MeetingsView } from './components/MeetingsView'
 import { RecordingBar } from './components/RecordingBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { TaskCard } from './components/TaskCard'
@@ -25,6 +26,7 @@ export function App() {
   const [board, setBoard] = useState<Board>(() => groupTasks([]))
   const [editing, setEditing] = useState<Task | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [view, setView] = useState<'kanban' | 'meetings'>('kanban')
   const [dragged, setDragged] = useState<Task | null>(null)
   const [error, setError] = useState<string | null>(null)
   const dragOrigin = useRef<Column | null>(null)
@@ -110,7 +112,11 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <h1>Hark</h1>
-        <span className="topbar__hint">Échap pour masquer · N pour une nouvelle tâche</span>
+        <nav className="tabs" aria-label="Vues">
+          <button className={`tab${view === 'kanban' ? ' tab--on' : ''}`} onClick={() => setView('kanban')}>Kanban</button>
+          <button className={`tab${view === 'meetings' ? ' tab--on' : ''}`} onClick={() => setView('meetings')}>Réunions</button>
+        </nav>
+        <span className="topbar__hint">Échap pour masquer{view === 'kanban' ? ' · N pour une nouvelle tâche' : ''}</span>
         <span className="spacer" />
         <RecordingBar api={api} onError={setError} />
         <button className="btn btn--ghost" onClick={() => setShowSettings(true)}>
@@ -118,6 +124,9 @@ export function App() {
         </button>
       </header>
       {error && <div className="banner">{error}</div>}
+      {view === 'meetings' ? (
+        <MeetingsView api={api} onError={setError} />
+      ) : (
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={(e) => void onDragEnd(e)} onDragCancel={() => void reload()}>
         <main className="board">
           {COLUMNS.map((c) => (
@@ -126,6 +135,7 @@ export function App() {
         </main>
         <DragOverlay>{dragged && <TaskCard task={dragged} overlay />}</DragOverlay>
       </DndContext>
+      )}
       {editing && (
         <TaskEditor
           key={editing.id}

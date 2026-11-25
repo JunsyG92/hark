@@ -14,7 +14,7 @@ export interface ApiResponse {
 }
 
 const METHODS = new Set<HttpMethod>(['GET', 'POST', 'PATCH', 'DELETE'])
-const PATH_RE = /^\/v1\/[A-Za-z0-9_\-/]*(\?[A-Za-z0-9_\-=&%.:]*)?$/
+const PATH_RE = /^\/v1\/[A-Za-z0-9_\-/.]*(\?[A-Za-z0-9_\-=&%.:]*)?$/
 
 export function validateApiRequest(req: unknown): ApiRequest {
   if (!req || typeof req !== 'object') throw new Error('invalid request')

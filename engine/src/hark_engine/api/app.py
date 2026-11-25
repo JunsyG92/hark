@@ -17,6 +17,7 @@ from .. import __version__
 from ..audio.source import AudioUnavailableError
 from ..detect import DetectorService
 from ..events import EventBus
+from ..export import export_markdown
 from ..models import (
     Column,
     DetectionSettings,
@@ -25,17 +26,24 @@ from ..models import (
     EventType,
     Meeting,
     MeetingTitleUpdate,
+    ModelDownloadRequest,
+    ModelProfile,
     PromptResponse,
     PromptResult,
     RecordingSettings,
     RecordingSettingsPatch,
     RecordingStart,
     RecordingStatus,
+    SearchHit,
     Task,
     TaskCreate,
     TaskMove,
     TaskProposal,
     TaskUpdate,
+    TranscriptionSettings,
+    TranscriptionSettingsPatch,
+    TranscriptionStatusInfo,
+    TranscriptSegment,
 )
 from ..record import Recorder, RecorderBusy
 from ..store import (
@@ -46,6 +54,7 @@ from ..store import (
     TaskNotFound,
     TaskRepository,
 )
+from ..stt import PROFILES, ModelManager, TranscriptionService, has_cuda, recommend, total_ram_gb
 from .deps import ProposeScope, ReadScope, UiScope
 from .stream import EventBroker, format_sse
 
@@ -74,6 +83,8 @@ def create_app(
     bus: EventBus | None = None,
     detector: DetectorService | None = None,
     recorder: Recorder | None = None,
+    transcription: TranscriptionService | None = None,
+    models: ModelManager | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -83,6 +94,7 @@ def create_app(
         # placed after server.run() would never execute.
         await run_in_threadpool(app.state.recorder.stop)
         await run_in_threadpool(app.state.detector.stop)
+        await run_in_threadpool(app.state.transcription.stop)
 
     app = FastAPI(
         lifespan=lifespan,
@@ -106,6 +118,11 @@ def create_app(
         meetings, settings_repo, events, Path(tempfile.gettempdir()) / "hark-unused"
     )
     app.state.recorder = rec
+    model_manager = models or ModelManager(Path(tempfile.gettempdir()) / "hark-unused-models")
+    stt_service = transcription or TranscriptionService(
+        meetings, settings_repo, events, model_manager, None
+    )
+    app.state.transcription = stt_service
 
     def _accept(prompt: object) -> bool:
         # Only the user's click on "Enregistrer" reaches this point.
@@ -227,6 +244,93 @@ def create_app(
     @app.patch("/v1/meetings/{meeting_id}", response_model=Meeting)
     def rename_meeting(meeting_id: str, body: MeetingTitleUpdate, _: UiScope) -> Meeting:
         return meetings.set_title(meeting_id, body.title)
+
+    @app.get("/v1/meetings/{meeting_id}/transcript", response_model=list[TranscriptSegment])
+    def meeting_transcript(meeting_id: str, _: ReadScope) -> list[TranscriptSegment]:
+        meetings.get(meeting_id)  # 404 if unknown
+        return meetings.segments(meeting_id)
+
+    @app.get("/v1/meetings/{meeting_id}/export.md")
+    def meeting_export(meeting_id: str, _: ReadScope) -> Response:
+        meeting = meetings.get(meeting_id)
+        md = export_markdown(
+            meeting,
+            meetings.segments(meeting_id),
+            TaskRepository(db).list(source=f"meeting:{meeting_id}"),
+        )
+        return Response(md, media_type="text/markdown; charset=utf-8")
+
+    @app.delete("/v1/meetings/{meeting_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_meeting(meeting_id: str, _: UiScope) -> Response:
+        meetings.get(meeting_id)
+        if rec.status().meeting_id == meeting_id:
+            raise HTTPException(status.HTTP_409_CONFLICT, "stop the recording first")
+        meetings.delete(meeting_id)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.post("/v1/meetings/{meeting_id}/transcribe", status_code=status.HTTP_202_ACCEPTED)
+    def transcribe_meeting(meeting_id: str, _: UiScope) -> dict[str, str]:
+        meeting = meetings.get(meeting_id)
+        if meeting.status.value != "recorded" or not meeting.audio_available:
+            raise HTTPException(status.HTTP_409_CONFLICT, "no audio available for this meeting")
+        stt_service.submit(meeting_id)
+        return {"status": "queued"}
+
+    @app.get("/v1/search", response_model=list[SearchHit])
+    def search_meetings(_: ReadScope, q: str = "", limit: int = 30) -> list[SearchHit]:
+        rows = meetings.search(q[:200], max(1, min(limit, 100)))
+        return [
+            SearchHit(
+                meeting_id=r["meeting_id"],
+                meeting_title=r["meeting_title"],
+                kind=r["kind"],
+                snippet=r["snippet"],
+                start_ms=r["start_ms"],
+                speaker=r["speaker"],
+            )
+            for r in rows
+        ]
+
+    # ---- transcription: settings, models, status -------------------------------------
+    @app.get("/v1/settings/transcription", response_model=TranscriptionSettings)
+    def get_transcription_settings(_: ReadScope) -> TranscriptionSettings:
+        return settings_repo.get_transcription()
+
+    @app.patch("/v1/settings/transcription", response_model=TranscriptionSettings)
+    def patch_transcription_settings(
+        body: TranscriptionSettingsPatch, _: UiScope
+    ) -> TranscriptionSettings:
+        new = settings_repo.patch_transcription(body)
+        stt_service.on_model_installed(new.profile)  # meetings waiting for a model retry now
+        return new
+
+    @app.get("/v1/models", response_model=list[ModelProfile])
+    def list_models(_: ReadScope) -> list[ModelProfile]:
+        best = recommend(total_ram_gb(), has_cuda())
+        return [
+            ModelProfile(
+                id=p.id,
+                label=p.label,
+                description=p.description,
+                whisper_model=p.whisper_model,
+                download_mb=p.download_mb,
+                min_ram_gb=p.min_ram_gb,
+                gpu_recommended=p.gpu_recommended,
+                installed=model_manager.installed(p.id),
+                recommended=p.id == best,
+            )
+            for p in PROFILES.values()
+        ]
+
+    @app.post("/v1/models/download", status_code=status.HTTP_202_ACCEPTED)
+    def download_model(body: ModelDownloadRequest, _: UiScope) -> dict[str, str]:
+        """The only place the engine uses the network: an explicit user action."""
+        model_manager.start_download(body.profile)
+        return {"status": "downloading"}
+
+    @app.get("/v1/transcription/status", response_model=TranscriptionStatusInfo)
+    def transcription_status(_: ReadScope) -> TranscriptionStatusInfo:
+        return stt_service.status()
 
     @app.get("/v1/recording/status", response_model=RecordingStatus)
     def recording_status(_: ReadScope) -> RecordingStatus:

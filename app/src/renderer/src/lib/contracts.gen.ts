@@ -31,6 +31,21 @@ export type MeetingStatus = "recording" | "recorded" | "failed";
 export type TrackKind = "system" | "mic";
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TranscriptionStatus".
+ */
+export type TranscriptionStatus = "none" | "pending" | "running" | "done" | "failed";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "ModelProfileId".
+ */
+export type ModelProfileId = "light" | "balanced" | "accurate" | "best";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Speaker".
+ */
+export type Speaker = "me" | "others";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "Column".
  */
 export type Column = "to_validate" | "todo" | "in_progress" | "done";
@@ -120,6 +135,10 @@ export interface Meeting {
    * Audio files still on disk (see retention).
    */
   audio_available: boolean;
+  transcription: TranscriptionStatus;
+  transcription_error: string | null;
+  language: string | null;
+  task_count: number;
 }
 /**
  * `data` of the `meeting.detected` event.
@@ -133,6 +152,21 @@ export interface MeetingDetectedData {
   level_db: number;
   prompt_seconds: number;
   reminder: string;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "ModelProfile".
+ */
+export interface ModelProfile {
+  id: ModelProfileId;
+  label: string;
+  description: string;
+  whisper_model: string;
+  download_mb: number;
+  min_ram_gb: number;
+  gpu_recommended: boolean;
+  installed: boolean;
+  recommended: boolean;
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
@@ -158,6 +192,21 @@ export interface RecordingStatus {
   silent_seconds: number;
   silence_prompted: boolean;
   warnings: string[];
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "SearchHit".
+ */
+export interface SearchHit {
+  meeting_id: string;
+  meeting_title: string;
+  kind: "title" | "summary" | "transcript";
+  /**
+   * Excerpt; matches wrapped in <mark>…</mark>.
+   */
+  snippet: string;
+  start_ms: number | null;
+  speaker: Speaker | null;
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
@@ -202,4 +251,30 @@ export interface TaskProposal {
   priority?: Priority;
   evidence?: EvidenceRef | null;
   confidence?: number | null;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TranscriptSegment".
+ */
+export interface TranscriptSegment {
+  id: number;
+  meeting_id: string;
+  track: TrackKind;
+  speaker: Speaker;
+  start_ms: number;
+  end_ms: number;
+  text: string;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TranscriptionSettings".
+ */
+export interface TranscriptionSettings {
+  profile: ModelProfileId;
+  language: "auto" | "fr" | "en";
+  auto_transcribe: boolean;
+  /**
+   * Days to keep the audio after a successful transcription (0 = delete).
+   */
+  retention_days: 0 | 7 | 30;
 }

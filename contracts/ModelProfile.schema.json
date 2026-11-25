@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/ModelProfile.json",
+  "$defs": {
+    "ModelProfileId": {
+      "enum": [
+        "light",
+        "balanced",
+        "accurate",
+        "best"
+      ],
+      "title": "ModelProfileId",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/ModelProfileId"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "whisper_model": {
+      "title": "Whisper Model",
+      "type": "string"
+    },
+    "download_mb": {
+      "title": "Download Mb",
+      "type": "integer"
+    },
+    "min_ram_gb": {
+      "title": "Min Ram Gb",
+      "type": "integer"
+    },
+    "gpu_recommended": {
+      "title": "Gpu Recommended",
+      "type": "boolean"
+    },
+    "installed": {
+      "title": "Installed",
+      "type": "boolean"
+    },
+    "recommended": {
+      "title": "Recommended",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "label",
+    "description",
+    "whisper_model",
+    "download_mb",
+    "min_ram_gb",
+    "gpu_recommended",
+    "installed",
+    "recommended"
+  ],
+  "title": "ModelProfile",
+  "type": "object"
+}

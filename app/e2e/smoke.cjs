@@ -22,7 +22,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   const app = await electron.launch({
     executablePath: electronPath,
     args: [...sandboxArgs, appDir],
-    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1' },
+    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1' },
   })
   const logs = []
   app.process().stdout.on('data', (d) => logs.push(String(d)))
@@ -85,6 +85,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
     BrowserWindow.getAllWindows().some((w) => w.webContents.getURL().includes('overlay.html') && w.isVisible()))
   if ((await call('GET', '/v1/recording/status')).body.recording) throw new Error('recording without any click')
   if (await overlayVisible()) throw new Error('overlay visible before recording: ' + JSON.stringify(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => [w.webContents.getURL().split('/').pop(), w.isVisible()]))))
+  await call('PATCH', '/v1/settings/transcription', { auto_transcribe: false, retention_days: 7 })
   await win.click('[data-testid=rec-button]')
   await win.waitForSelector('text=REC')
   for (let i = 0; i < 50 && !(await overlayVisible()); i++) await new Promise((r) => setTimeout(r, 100))
@@ -108,6 +109,45 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
     if (!existsSync(f) || statSync(f).size < 1000) throw new Error('missing/empty ' + f)
   }
   console.log('recorded:', m.title, m.duration_ms, 'ms')
+  if (m.transcription !== 'none') throw new Error('transcribed although auto_transcribe is off')
+  // --- transcription (step 4, synthetic STT): queue, segments, search, export, retention
+  const waitDone = async (id) => {
+    for (let i = 0; i < 100; i++) {
+      const cur = (await call('GET', '/v1/meetings/' + id)).body
+      if (cur.transcription === 'done') return cur
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    throw new Error('transcription did not finish')
+  }
+  await call('POST', '/v1/meetings/' + m.id + '/transcribe')
+  const finished = await waitDone(m.id)
+  if (finished.language !== 'fr' || !finished.audio_available) throw new Error('retention 7 days must keep the audio: ' + JSON.stringify(finished))
+  const segs = (await call('GET', '/v1/meetings/' + m.id + '/transcript')).body
+  if (segs.map((x) => x.speaker).join() !== 'others,me') throw new Error('bad speakers ' + JSON.stringify(segs))
+  const hits = (await call('GET', '/v1/search?q=budget')).body
+  if (!hits.length || !hits.some((h) => h.snippet.includes('<mark>'))) throw new Error('search failed ' + JSON.stringify(hits))
+  const md = (await call('GET', '/v1/meetings/' + m.id + '/export.md')).body
+  if (!String(md).includes('# Revue budget Q1') || !String(md).includes('Moi')) throw new Error('bad export')
+  await win.click('button.tab:has-text("Réunions")')
+  await win.click('.meeting-row:has-text("Revue budget Q1")')
+  await win.waitForSelector('.transcript__row:has-text("Bonjour à tous")')
+  await win.fill('.meetings__search', 'budget')
+  await win.waitForSelector('mark')
+  await win.screenshot({ path: join(outDir, 'meetings.png') })
+  await win.fill('.meetings__search', '')
+  await win.click('button.tab:has-text("Kanban")')
+  // default retention: audio removed right after a successful transcription, transcript kept
+  await call('PATCH', '/v1/settings/transcription', { retention_days: 0 })
+  await call('POST', '/v1/meetings/' + m.id + '/transcribe').catch(() => undefined)
+  for (let i = 0; i < 50; i++) {
+    const cur = (await call('GET', '/v1/meetings/' + m.id)).body
+    if (!cur.audio_available) break
+    await new Promise((r) => setTimeout(r, 100))
+  }
+  const after = (await call('GET', '/v1/meetings/' + m.id)).body
+  if (after.audio_available) throw new Error('audio not deleted after transcription with retention 0')
+  if (existsSync(join(dataDir, 'audio', m.id, 'system.wav'))) throw new Error('audio file still on disk')
+  if ((await call('GET', '/v1/meetings/' + m.id + '/transcript')).body.length !== 2) throw new Error('transcript lost')
   // second recording, left running: quitting the app must finalize it (no corrupted file)
   await call('POST', '/v1/recording/start', { title: 'Interrompue' })
   await new Promise((r) => setTimeout(r, 1500))
@@ -118,7 +158,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   if (doneTitles.join() !== 'Relire le contrat') throw new Error('drag and drop failed')
   await app.close()
   // restart to verify persistence
-  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1' } })
+  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1' } })
   const w2 = await kanbanWindow(app2); await w2.waitForSelector('text=Relire le contrat')
   const persisted = await w2.locator('[data-testid=task-card]').count()
   console.log('persisted:', persisted)

@@ -1,4 +1,5 @@
-import { Notification, app, globalShortcut, ipcMain } from 'electron'
+import { Notification, app, dialog, globalShortcut, ipcMain } from 'electron'
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { forward, validateApiRequest } from './apiProxy'
 import { setLaunchAtLogin } from './autostart'
@@ -13,6 +14,7 @@ import {
 } from './detection'
 import { Engine, resolveEngineCommand } from './engine'
 import { EngineEvents } from './events'
+import { parseSaveRequest } from './files'
 import { OverlayWindow } from './overlay'
 import { SettingsStore, isValidAccelerator, type AppSettings } from './settings'
 import { ToastWindow } from './toast'
@@ -115,6 +117,17 @@ async function main(): Promise<void> {
     applySettings((patch && typeof patch === 'object' ? patch : {}) as Partial<AppSettings>),
   )
   ipcMain.on('hark:hide', () => kanban.hide())
+  ipcMain.handle('hark:save-file', async (e, raw: unknown) => {
+    if (e.sender !== kanban.webContents) throw new Error('forbidden')
+    const req = parseSaveRequest(raw)
+    if (!req) throw new Error('invalid request')
+    const win = kanban.window
+    const options = { defaultPath: join(app.getPath('documents'), req.fileName), filters: [{ name: 'Markdown', extensions: ['md'] }] }
+    const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+    if (res.canceled || !res.filePath) return { saved: false }
+    await writeFile(res.filePath, req.content, 'utf8')
+    return { saved: true }
+  })
 
   // ---- consent / "meeting ended?" toast answers ---------------------------------------
   ipcMain.on('hark:toast:respond', (e, raw: unknown) => {
@@ -165,11 +178,16 @@ async function main(): Promise<void> {
         tray.setState('recording')
         if (info) overlay.show(info)
         kanban.webContents?.send('hark:recording-changed')
+        kanban.webContents?.send('hark:meetings-changed')
       } else if (ev.type === 'meeting.recorded') {
         overlay.hide()
         toast.hideIfKind('ended')
         tray.setState('idle')
         kanban.webContents?.send('hark:recording-changed')
+        kanban.webContents?.send('hark:meetings-changed')
+      } else if (ev.type === 'transcript.ready') {
+        kanban.webContents?.send('hark:meetings-changed')
+        notify('Transcription terminée. Retrouve-la dans l’onglet Réunions.')
       } else if (ev.type === 'meeting.silence') {
         const s = parseSilence(ev.data)
         if (!s) return

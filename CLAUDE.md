@@ -13,6 +13,8 @@ Lire d'abord `docs/architecture.md` et `docs/decisions.md`.
   (`TaskProposal` n'a pas de champ `column`). Seul le scope `ui` modifie, déplace ou supprime.
 - L'API n'écoute que sur `127.0.0.1` ; le token ne quitte jamais le process main d'Electron.
 - Validation stricte des entrées (`extra="forbid"`), aucune exécution de code fourni par un plugin.
+- **Aucun appel réseau hors loopback** est appliqué par `net/guard.py`. Tout nouveau code qui voudrait le réseau doit
+  passer par une action explicite de l'utilisateur et `allow_network()` ; ne jamais désactiver la garde.
 - **Jamais de vraies données de réunion dans les tests** : audio et transcriptions synthétiques uniquement.
 
 ## Commandes
@@ -35,6 +37,8 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   - `audio/` — niveaux audio (`levels.py` RMS dBFS, `source.py` loopback via `soundcard`, import tardif)
   - `detect/` — `machine.py` (pur, horloge injectable), `probes.py` (micro utilisé par OS), `service.py` (threads → événement `meeting.detected`)
   - `record/` — `recorder.py` (deux pistes WAV, threads, reprise après crash), `silence.py` (pur, fin de réunion)
+  - `stt/` — `profiles.py` (modèles/recommandation), `models.py` (téléchargement explicite), `transcriber.py` (faster-whisper / factice), `service.py` (file d'attente, rétention)
+  - `net/guard.py` — garde réseau (loopback seulement) ; `export.py` — export Markdown (pur)
   - `events.py` — bus d'événements interne
   - `auth.py` — token maître (keyring, repli fichier 0600)
   - `main.py` — point d'entrée sidecar (handshake stdout, logs sur stderr)
@@ -50,6 +54,10 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   `server.should_exit = True` (arrêt propre), jamais `os.kill(SIGTERM)`.
 - Un enregistrement doit rester récupérable : WAV + flush par bloc ; `recover_interrupted()` recompte les vraies images.
 - Dans les tests/e2e Electron, `getAllWindows()[0]` n'est pas le kanban : sélectionner par URL (`index.html`).
+- `HARK_FAKE_STT=1` : transcription factice (deux segments fr) et modèles « installés », pour tester sans télécharger.
+  Le vrai faster-whisper n'a un test d'intégration qu'en opt-in : `HARK_TEST_REAL_STT=1 uv run pytest tests/test_real_stt.py -s`.
+- Hugging Face ne doit jamais passer en ligne seul : `HF_HUB_OFFLINE=1` est posé au démarrage ; seul le téléchargement
+  explicite le bascule temporairement.
 - `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions

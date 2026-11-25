@@ -1,15 +1,33 @@
+import { enc } from './meetings'
 import type {
   Column,
   DetectionSettings,
   DetectionStatus,
   Meeting,
+  ModelProfile,
   Priority,
   RecordingSettings,
   RecordingStatus,
+  SearchHit,
   Task,
+  TranscriptionSettings,
+  TranscriptSegment,
 } from './contracts.gen'
 
-export type { Column, DetectionSettings, DetectionStatus, Meeting, Priority, RecordingSettings, RecordingStatus, Task }
+export type {
+  Column,
+  DetectionSettings,
+  DetectionStatus,
+  Meeting,
+  ModelProfile,
+  Priority,
+  RecordingSettings,
+  RecordingStatus,
+  SearchHit,
+  Task,
+  TranscriptionSettings,
+  TranscriptSegment,
+}
 
 export interface TaskDraft {
   title: string
@@ -56,8 +74,30 @@ export function createApi(transport: Transport) {
     recordingSettings: () => call<RecordingSettings>('GET', '/v1/settings/recording'),
     patchRecordingSettings: (patch: Partial<RecordingSettings>) =>
       call<RecordingSettings>('PATCH', '/v1/settings/recording', patch),
+    listMeetings: () => call<Meeting[]>('GET', '/v1/meetings?limit=100'),
+    renameMeeting: (id: string, title: string) => call<Meeting>('PATCH', `/v1/meetings/${enc(id)}`, { title }),
+    deleteMeeting: (id: string) => call<null>('DELETE', `/v1/meetings/${enc(id)}`),
+    transcript: (id: string) => call<TranscriptSegment[]>('GET', `/v1/meetings/${enc(id)}/transcript`),
+    exportMarkdown: (id: string) => call<string>('GET', `/v1/meetings/${enc(id)}/export.md`),
+    retranscribe: (id: string) => call<{ status: string }>('POST', `/v1/meetings/${enc(id)}/transcribe`),
+    search: (q: string) => call<SearchHit[]>('GET', `/v1/search?q=${enc(q)}&limit=40`),
+    meetingTasks: (id: string) => call<Task[]>('GET', `/v1/tasks?source=${enc(`meeting:${id}`)}`),
+    models: () => call<ModelProfile[]>('GET', '/v1/models'),
+    downloadModel: (profile: string) => call<{ status: string }>('POST', '/v1/models/download', { profile }),
+    transcriptionSettings: () => call<TranscriptionSettings>('GET', '/v1/settings/transcription'),
+    patchTranscriptionSettings: (patch: Partial<TranscriptionSettings>) =>
+      call<TranscriptionSettings>('PATCH', '/v1/settings/transcription', patch),
+    transcriptionStatus: () => call<TranscriptionStatusInfo>('GET', '/v1/transcription/status'),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
+}
+
+export interface TranscriptionStatusInfo {
+  queue: string[]
+  current_meeting_id: string | null
+  progress: number
+  model_installed: boolean
+  download: { state: 'idle' | 'downloading' | 'done' | 'error'; profile: string | null; error: string | null }
 }
 
 export type HarkApi = ReturnType<typeof createApi>

@@ -79,6 +79,10 @@ export class KanbanWindow {
     this.win?.hide()
   }
 
+  get window(): BrowserWindow | null {
+    return this.win
+  }
+
   get webContents(): Electron.WebContents | undefined {
     return this.win?.webContents
   }

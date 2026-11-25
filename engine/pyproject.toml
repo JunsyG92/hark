@@ -13,6 +13,7 @@ dependencies = [
   "soundcard>=0.4.6",
   "numpy>=2.4.6",
   "soundfile>=0.14.0",
+  "faster-whisper>=1.2.1",
 ]
 
 [project.scripts]
@@ -51,5 +52,5 @@ packages = ["hark_engine"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["soundcard", "soundfile"]
+module = ["soundcard", "soundfile", "ctranslate2", "faster_whisper", "faster_whisper.*", "huggingface_hub", "huggingface_hub.*"]
 ignore_missing_imports = true

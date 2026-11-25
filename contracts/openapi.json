@@ -700,6 +700,400 @@
             }
           }
         }
+      },
+      "delete": {
+        "summary": "Delete Meeting",
+        "operationId": "delete_meeting_v1_meetings__meeting_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meetings/{meeting_id}/transcript": {
+      "get": {
+        "summary": "Meeting Transcript",
+        "operationId": "meeting_transcript_v1_meetings__meeting_id__transcript_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TranscriptSegment"
+                  },
+                  "title": "Response Meeting Transcript V1 Meetings  Meeting Id  Transcript Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meetings/{meeting_id}/export.md": {
+      "get": {
+        "summary": "Meeting Export",
+        "operationId": "meeting_export_v1_meetings__meeting_id__export_md_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meetings/{meeting_id}/transcribe": {
+      "post": {
+        "summary": "Transcribe Meeting",
+        "operationId": "transcribe_meeting_v1_meetings__meeting_id__transcribe_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Transcribe Meeting V1 Meetings  Meeting Id  Transcribe Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/search": {
+      "get": {
+        "summary": "Search Meetings",
+        "operationId": "search_meetings_v1_search_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchHit"
+                  },
+                  "title": "Response Search Meetings V1 Search Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settings/transcription": {
+      "get": {
+        "summary": "Get Transcription Settings",
+        "operationId": "get_transcription_settings_v1_settings_transcription_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionSettings"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Transcription Settings",
+        "operationId": "patch_transcription_settings_v1_settings_transcription_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranscriptionSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "List Models",
+        "operationId": "list_models_v1_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelProfile"
+                  },
+                  "type": "array",
+                  "title": "Response List Models V1 Models Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/models/download": {
+      "post": {
+        "summary": "Download Model",
+        "description": "The only place the engine uses the network: an explicit user action.",
+        "operationId": "download_model_v1_models_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelDownloadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Download Model V1 Models Download Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/transcription/status": {
+      "get": {
+        "summary": "Transcription Status",
+        "operationId": "transcription_status_v1_transcription_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptionStatusInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/v1/recording/status": {
@@ -1114,6 +1508,49 @@
         ],
         "title": "DetectionStatus"
       },
+      "DownloadStatus": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "downloading",
+              "done",
+              "error"
+            ],
+            "title": "State"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelProfileId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "profile",
+          "error"
+        ],
+        "title": "DownloadStatus"
+      },
       "EvidenceRef-Input": {
         "properties": {
           "meeting_id": {
@@ -1258,6 +1695,37 @@
             "type": "boolean",
             "title": "Audio Available",
             "description": "Audio files still on disk (see retention)."
+          },
+          "transcription": {
+            "$ref": "#/components/schemas/TranscriptionStatus",
+            "default": "none"
+          },
+          "transcription_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcription Error"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "task_count": {
+            "type": "integer",
+            "title": "Task Count",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -1271,7 +1739,11 @@
           "ended_at",
           "duration_ms",
           "tracks",
-          "audio_available"
+          "audio_available",
+          "transcription",
+          "transcription_error",
+          "language",
+          "task_count"
         ],
         "title": "Meeting"
       },
@@ -1298,6 +1770,82 @@
           "title"
         ],
         "title": "MeetingTitleUpdate"
+      },
+      "ModelDownloadRequest": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ModelProfileId"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profile"
+        ],
+        "title": "ModelDownloadRequest"
+      },
+      "ModelProfile": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/ModelProfileId"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "whisper_model": {
+            "type": "string",
+            "title": "Whisper Model"
+          },
+          "download_mb": {
+            "type": "integer",
+            "title": "Download Mb"
+          },
+          "min_ram_gb": {
+            "type": "integer",
+            "title": "Min Ram Gb"
+          },
+          "gpu_recommended": {
+            "type": "boolean",
+            "title": "Gpu Recommended"
+          },
+          "installed": {
+            "type": "boolean",
+            "title": "Installed"
+          },
+          "recommended": {
+            "type": "boolean",
+            "title": "Recommended"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description",
+          "whisper_model",
+          "download_mb",
+          "min_ram_gb",
+          "gpu_recommended",
+          "installed",
+          "recommended"
+        ],
+        "title": "ModelProfile"
+      },
+      "ModelProfileId": {
+        "type": "string",
+        "enum": [
+          "light",
+          "balanced",
+          "accurate",
+          "best"
+        ],
+        "title": "ModelProfileId"
       },
       "Priority": {
         "type": "string",
@@ -1537,6 +2085,72 @@
           "warnings"
         ],
         "title": "RecordingStatus"
+      },
+      "SearchHit": {
+        "properties": {
+          "meeting_id": {
+            "type": "string",
+            "title": "Meeting Id"
+          },
+          "meeting_title": {
+            "type": "string",
+            "title": "Meeting Title"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "title",
+              "summary",
+              "transcript"
+            ],
+            "title": "Kind"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet",
+            "description": "Excerpt; matches wrapped in <mark>…</mark>."
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "speaker": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Speaker"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "meeting_id",
+          "meeting_title",
+          "kind",
+          "snippet",
+          "start_ms",
+          "speaker"
+        ],
+        "title": "SearchHit"
+      },
+      "Speaker": {
+        "type": "string",
+        "enum": [
+          "me",
+          "others"
+        ],
+        "title": "Speaker"
       },
       "Task": {
         "properties": {
@@ -1873,6 +2487,209 @@
           "mic"
         ],
         "title": "TrackKind"
+      },
+      "TranscriptSegment": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "meeting_id": {
+            "type": "string",
+            "title": "Meeting Id"
+          },
+          "track": {
+            "$ref": "#/components/schemas/TrackKind"
+          },
+          "speaker": {
+            "$ref": "#/components/schemas/Speaker"
+          },
+          "start_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start Ms"
+          },
+          "end_ms": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "End Ms"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "meeting_id",
+          "track",
+          "speaker",
+          "start_ms",
+          "end_ms",
+          "text"
+        ],
+        "title": "TranscriptSegment"
+      },
+      "TranscriptionSettings": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ModelProfileId",
+            "default": "balanced"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fr",
+              "en"
+            ],
+            "title": "Language",
+            "default": "auto"
+          },
+          "auto_transcribe": {
+            "type": "boolean",
+            "title": "Auto Transcribe",
+            "default": true
+          },
+          "retention_days": {
+            "type": "integer",
+            "enum": [
+              0,
+              7,
+              30
+            ],
+            "title": "Retention Days",
+            "description": "Days to keep the audio after a successful transcription (0 = delete).",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profile",
+          "language",
+          "auto_transcribe",
+          "retention_days"
+        ],
+        "title": "TranscriptionSettings"
+      },
+      "TranscriptionSettingsPatch": {
+        "properties": {
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ModelProfileId"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "fr",
+                  "en"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "auto_transcribe": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Transcribe"
+          },
+          "retention_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "enum": [
+                  0,
+                  7,
+                  30
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retention Days"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "TranscriptionSettingsPatch"
+      },
+      "TranscriptionStatus": {
+        "type": "string",
+        "enum": [
+          "none",
+          "pending",
+          "running",
+          "done",
+          "failed"
+        ],
+        "title": "TranscriptionStatus"
+      },
+      "TranscriptionStatusInfo": {
+        "properties": {
+          "queue": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queue"
+          },
+          "current_meeting_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Meeting Id"
+          },
+          "progress": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Progress"
+          },
+          "model_installed": {
+            "type": "boolean",
+            "title": "Model Installed"
+          },
+          "download": {
+            "$ref": "#/components/schemas/DownloadStatus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "queue",
+          "current_meeting_id",
+          "progress",
+          "model_installed",
+          "download"
+        ],
+        "title": "TranscriptionStatusInfo"
       },
       "ValidationError": {
         "properties": {

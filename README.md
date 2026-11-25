@@ -18,7 +18,8 @@ Hark est une application de bureau **locale** :
 | 1 | Squelette Electron + moteur, tray, raccourci, kanban persistant | ✅ |
 | 2 | Détection audio + notification de consentement (sans enregistrement) | ✅ |
 | 3 | Enregistrement deux pistes + fin de réunion | ✅ |
-| 4 | Transcription locale + historique + recherche (4b : voix → personnes) | ⏳ |
+| 4 | Transcription locale + historique + recherche + export Markdown | ✅ |
+| 4b | Voix → personnes (nom + mail) | ⏳ |
 | 5 | Analyse LLM + « À valider » + profil + budget tokens | ⏳ |
 | 6 | API locale complète + webhooks + MCP + plugin d'exemple | ⏳ |
 | 7 | Skill `plug-tools` + templates + `scripts/check-plugin` | ⏳ |
@@ -80,6 +81,28 @@ dans le kanban. Deux pistes WAV 16 kHz sont écrites dans le dossier de données
 Après 3 min de silence (réglable) sur les deux pistes, « Réunion terminée ? » s'affiche et **reste** jusqu'à ce que
 quelqu'un reparle (elle disparaît alors) ou que tu choisisses Arrêter / Continuer. Hark ne s'arrête jamais seul.
 Si tu quittes Hark ou si l'ordinateur plante pendant un enregistrement, ce qui était déjà écrit est conservé.
+
+## Transcription et historique
+
+À la fin d'un enregistrement, Hark transcrit **localement** avec faster-whisper (piste micro = « Moi », piste système =
+« Autres »), avec horodatage par segment, en français et en anglais (détection automatique, ou langue imposée).
+**Premier lancement : il faut télécharger un modèle** (Réglages → Transcription) ; choisis selon ta machine :
+
+| Profil | Modèle | Taille | Pour |
+|---|---|---|---|
+| Léger | base | ≈ 150 Mo | petit PC, 4 Go de RAM |
+| Équilibré | small | ≈ 490 Mo | portable récent sans GPU (recommandé par défaut) |
+| Précis | medium | ≈ 1,5 Go | 16 Go de RAM, idéalement GPU NVIDIA |
+| Très précis | large-v3-turbo | ≈ 1,6 Go | GPU NVIDIA ≥ 6 Go de VRAM |
+
+Le téléchargement (depuis Hugging Face, **aucune donnée envoyée**) est la **seule** connexion réseau du moteur et ne se fait
+que si tu cliques. Le reste du moteur est protégé par une garde qui refuse toute connexion hors `127.0.0.1`.
+**Audio supprimé après transcription réussie** par défaut (réglable : 7 ou 30 jours). Si la transcription échoue ou si le
+modèle manque, l'audio est conservé et la réunion attend.
+
+Onglet **Réunions** : liste (date, durée, titre, nombre de tâches, état), recherche plein texte (titres et transcriptions,
+insensible aux accents, préfixes), page détail avec transcription horodatée, titre modifiable, **export Markdown**,
+retranscription, suppression.
 
 ## Configuration
 

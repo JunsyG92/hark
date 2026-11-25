@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/SearchHit.json",
+  "$defs": {
+    "Speaker": {
+      "enum": [
+        "me",
+        "others"
+      ],
+      "title": "Speaker",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "meeting_id": {
+      "title": "Meeting Id",
+      "type": "string"
+    },
+    "meeting_title": {
+      "title": "Meeting Title",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "title",
+        "summary",
+        "transcript"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "snippet": {
+      "description": "Excerpt; matches wrapped in <mark>…</mark>.",
+      "title": "Snippet",
+      "type": "string"
+    },
+    "start_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Start Ms"
+    },
+    "speaker": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Speaker"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "meeting_id",
+    "meeting_title",
+    "kind",
+    "snippet",
+    "start_ms",
+    "speaker"
+  ],
+  "title": "SearchHit",
+  "type": "object"
+}

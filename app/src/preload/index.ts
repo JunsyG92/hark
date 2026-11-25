@@ -8,6 +8,8 @@ export interface HarkBridge {
   onShown: (cb: () => void) => () => void
   onTasksChanged: (cb: () => void) => () => void
   onRecordingChanged: (cb: () => void) => () => void
+  onMeetingsChanged: (cb: () => void) => () => void
+  saveFile: (suggestedName: string, content: string) => Promise<{ saved: boolean }>
   platform: string
 }
 
@@ -31,6 +33,12 @@ const bridge: HarkBridge = {
     ipcRenderer.on('hark:recording-changed', listener)
     return () => ipcRenderer.removeListener('hark:recording-changed', listener)
   },
+  onMeetingsChanged: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('hark:meetings-changed', listener)
+    return () => ipcRenderer.removeListener('hark:meetings-changed', listener)
+  },
+  saveFile: (suggestedName, content) => ipcRenderer.invoke('hark:save-file', { suggestedName, content }),
   platform: process.platform,
 }
 

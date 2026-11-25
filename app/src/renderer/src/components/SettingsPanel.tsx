@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { DetectionSection } from './DetectionSettings'
 import { RecordingSection } from './RecordingSection'
+import { TranscriptionSection } from './TranscriptionSection'
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [shortcut, setShortcut] = useState('')
@@ -25,7 +26,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-label="Réglages" onMouseDown={onClose}>
-      <div className="modal__panel modal__panel--small modal__panel--scroll" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="modal__panel modal__panel--wide modal__panel--scroll" onMouseDown={(e) => e.stopPropagation()}>
         <h2>Réglages</h2>
         <label>
           Raccourci global
@@ -38,6 +39,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         {message && <p className="modal__source">{message}</p>}
         <DetectionSection />
         <RecordingSection />
+        <TranscriptionSection />
         <div className="modal__actions">
           <span className="spacer" />
           <button className="btn btn--ghost" onClick={onClose}>
