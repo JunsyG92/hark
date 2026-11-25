@@ -53,7 +53,7 @@ async function main(): Promise<void> {
   )
   engine.start()
 
-  const call = async (method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown) =>
+  const call = async (method: 'GET' | 'POST' | 'PATCH' | 'PUT', path: string, body?: unknown) =>
     forward({ method, path, body }, await engine.ready())
 
   const notify = (body: string): void => {
@@ -196,6 +196,10 @@ async function main(): Promise<void> {
         tray.setState('idle')
         kanban.webContents?.send('hark:recording-changed')
         kanban.webContents?.send('hark:meetings-changed')
+      } else if (ev.type === 'analysis.ready') {
+        kanban.webContents?.send('hark:meetings-changed')
+        const n = Number(ev.data.tasks ?? 0)
+        notify(n > 0 ? `Analyse terminée : ${n} tâche${n > 1 ? 's' : ''} à valider dans le kanban.` : 'Analyse terminée : résumé disponible dans Réunions.')
       } else if (ev.type === 'transcript.ready') {
         kanban.webContents?.send('hark:meetings-changed')
         notify('Transcription terminée. Retrouve-la dans l’onglet Réunions.')

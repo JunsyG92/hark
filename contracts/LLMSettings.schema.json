@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/LLMSettings.json",
+  "additionalProperties": false,
+  "properties": {
+    "provider": {
+      "default": "ollama",
+      "enum": [
+        "ollama",
+        "cloud"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "ollama_url": {
+      "default": "http://127.0.0.1:11434",
+      "title": "Ollama Url",
+      "type": "string"
+    },
+    "model": {
+      "default": "qwen2.5:7b-instruct",
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "chunk_tokens": {
+      "default": 1500,
+      "maximum": 6000,
+      "minimum": 500,
+      "title": "Chunk Tokens",
+      "type": "integer"
+    },
+    "max_tokens_per_meeting": {
+      "default": 40000,
+      "maximum": 500000,
+      "minimum": 2000,
+      "title": "Max Tokens Per Meeting",
+      "type": "integer"
+    },
+    "auto_analyze": {
+      "default": true,
+      "title": "Auto Analyze",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "provider",
+    "ollama_url",
+    "model",
+    "chunk_tokens",
+    "max_tokens_per_meeting",
+    "auto_analyze"
+  ],
+  "title": "LLMSettings",
+  "type": "object"
+}

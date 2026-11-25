@@ -38,7 +38,9 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   - `detect/` — `machine.py` (pur, horloge injectable), `probes.py` (micro utilisé par OS), `service.py` (threads → événement `meeting.detected`)
   - `record/` — `recorder.py` (deux pistes WAV, threads, reprise après crash), `silence.py` (pur, fin de réunion)
   - `stt/` — `profiles.py` (modèles/recommandation), `models.py` (téléchargement explicite), `transcriber.py` (faster-whisper / factice), `service.py` (file d'attente, rétention)
-  - `net/guard.py` — garde réseau (loopback seulement) ; `export.py` — export Markdown (pur)
+  - `llm/` — `provider.py` (interface + fournisseur factice), `ollama.py` (local), `cloud.py` (désactivé par défaut), `profiles.py`, `factory.py`
+  - `analysis/` — `chunking.py`, `prompts.py` (**changer un prompt ⇒ incrémenter `PROMPT_VERSION`**), `pipeline.py` (budget, parsing), `mine.py` (« me concernant »), `service.py` (file, cache par hash, création des tâches)
+  - `profile.py` — `profile.yaml` (YAML sûr, validé) ; `net/guard.py` — garde réseau (loopback seulement) ; `export.py` — export Markdown (pur)
   - `events.py` — bus d'événements interne
   - `auth.py` — token maître (keyring, repli fichier 0600)
   - `main.py` — point d'entrée sidecar (handshake stdout, logs sur stderr)
@@ -58,6 +60,9 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   Le vrai faster-whisper n'a un test d'intégration qu'en opt-in : `HARK_TEST_REAL_STT=1 uv run pytest tests/test_real_stt.py -s`.
 - Hugging Face ne doit jamais passer en ligne seul : `HF_HUB_OFFLINE=1` est posé au démarrage ; seul le téléchargement
   explicite le bascule temporairement.
+- `HARK_FAKE_LLM=1` : LLM factice déterministe (2 tâches, résumé) pour les tests/e2e. Le vrai Ollama n'est testé que contre
+  un faux serveur HTTP local (contrat de l'API) : il n'a pas été exécuté en CI.
+- Les tâches créées par l'analyse passent par `TaskRepository.propose` : **toujours** `to_validate`.
 - `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions

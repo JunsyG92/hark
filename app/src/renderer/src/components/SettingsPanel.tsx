@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { AnalysisSection } from './AnalysisSection'
 import { DetectionSection } from './DetectionSettings'
 import { RecordingSection } from './RecordingSection'
 import { TranscriptionSection } from './TranscriptionSection'
@@ -40,6 +41,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <DetectionSection />
         <RecordingSection />
         <TranscriptionSection />
+        <AnalysisSection />
         <div className="modal__actions">
           <span className="spacer" />
           <button className="btn btn--ghost" onClick={onClose}>

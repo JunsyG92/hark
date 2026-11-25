@@ -20,7 +20,7 @@ Hark est une application de bureau **locale** :
 | 3 | Enregistrement deux pistes + fin de réunion | ✅ |
 | 4 | Transcription locale + historique + recherche + export Markdown | ✅ |
 | 4b | Voix → personnes (nom + mail) | ⏳ |
-| 5 | Analyse LLM + « À valider » + profil + budget tokens | ⏳ |
+| 5 | Analyse LLM + « À valider » + profil + budget tokens | ✅ |
 | 6 | API locale complète + webhooks + MCP + plugin d'exemple | ⏳ |
 | 7 | Skill `plug-tools` + templates + `scripts/check-plugin` | ⏳ |
 
@@ -103,6 +103,23 @@ modèle manque, l'audio est conservé et la réunion attend.
 Onglet **Réunions** : liste (date, durée, titre, nombre de tâches, état), recherche plein texte (titres et transcriptions,
 insensible aux accents, préfixes), page détail avec transcription horodatée, titre modifiable, **export Markdown**,
 retranscription, suppression.
+
+## Analyse (résumé, décisions, tâches)
+
+Après la transcription, Hark analyse la réunion avec un **LLM local (Ollama)** : résumé (≤ 10 lignes), décisions, tâches
+(titre, assigné, échéance, confiance, extrait horodaté), questions ouvertes, et un titre si tu n'en as pas mis.
+**Toutes les tâches arrivent dans « À valider »** ; celles qui te concernent sont en tête (assigné = toi d'après ton
+`profile.yaml`, ou « je m'en occupe » dit sur ta piste micro). Chaque tâche renvoie à l'extrait de transcription d'origine.
+
+Installation : [Ollama](https://ollama.com), puis Réglages → **Analyse IA** → choisis un modèle (Léger 3B / Équilibré 7B /
+Précis 14B selon ta machine, ou n'importe quel modèle déjà installé) et clique Télécharger (c'est Ollama qui télécharge).
+
+**Maîtrise des tokens** : transcription découpée en blocs → un résumé par bloc → **une seule** passe finale d'extraction ;
+budget maximum par réunion (refus avant tout envoi s'il est dépassé) ; une même transcription (même modèle, même profil)
+n'est **jamais** ré-analysée (cache par hash). Seul un clic sur « Ré-analyser » force un nouvel appel.
+
+**Fournisseur cloud** : désactivé par défaut. Il ne s'active que si tu coches explicitement que le texte de tes réunions
+quittera ta machine, fournis une clé (rangée dans le gestionnaire d'identifiants) et le sélectionnes.
 
 ## Configuration
 

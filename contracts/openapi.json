@@ -6,6 +6,436 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/v1/meetings/{meeting_id}/analysis": {
+      "get": {
+        "summary": "Get Analysis",
+        "operationId": "get_analysis_v1_meetings__meeting_id__analysis_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Analysis"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meetings/{meeting_id}/analyze": {
+      "post": {
+        "summary": "Analyze Meeting",
+        "description": "Explicit user action. Same input + model ⇒ cached result, no LLM call (unless force).",
+        "operationId": "analyze_meeting_v1_meetings__meeting_id__analyze_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Analyze Meeting V1 Meetings  Meeting Id  Analyze Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/status": {
+      "get": {
+        "summary": "Analysis Status",
+        "operationId": "analysis_status_v1_analysis_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatusInfo"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/llm": {
+      "get": {
+        "summary": "Get Llm",
+        "operationId": "get_llm_v1_settings_llm_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LLMSettings"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Llm",
+        "operationId": "patch_llm_v1_settings_llm_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LLMSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LLMSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/llm/models": {
+      "get": {
+        "summary": "Llm Models",
+        "operationId": "llm_models_v1_llm_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LLMModelProfile"
+                  },
+                  "type": "array",
+                  "title": "Response Llm Models V1 Llm Models Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/llm/pull": {
+      "post": {
+        "summary": "Llm Pull",
+        "description": "Asks the local Ollama server to download a model (explicit user action).",
+        "operationId": "llm_pull_v1_llm_pull_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LLMPullRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Llm Pull V1 Llm Pull Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/cloud": {
+      "get": {
+        "summary": "Get Cloud",
+        "operationId": "get_cloud_v1_settings_cloud_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSettingsView"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Cloud",
+        "operationId": "patch_cloud_v1_settings_cloud_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CloudSettingsView"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/cloud/key": {
+      "put": {
+        "summary": "Put Cloud Key",
+        "description": "Stored in the OS credential manager; never returned by the API.",
+        "operationId": "put_cloud_key_v1_settings_cloud_key_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloudKeyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/profile": {
+      "get": {
+        "summary": "Get Profile",
+        "operationId": "get_profile_v1_profile_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Put Profile",
+        "operationId": "put_profile_v1_profile_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileDocument"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1253,6 +1683,263 @@
   },
   "components": {
     "schemas": {
+      "Analysis": {
+        "properties": {
+          "meeting_id": {
+            "type": "string",
+            "title": "Meeting Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "decisions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions"
+          },
+          "open_questions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Open Questions"
+          },
+          "tasks_proposed": {
+            "type": "integer",
+            "title": "Tasks Proposed"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "chunks": {
+            "type": "integer",
+            "title": "Chunks"
+          },
+          "tokens_in": {
+            "type": "integer",
+            "title": "Tokens In"
+          },
+          "tokens_out": {
+            "type": "integer",
+            "title": "Tokens Out"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "meeting_id",
+          "title",
+          "summary",
+          "decisions",
+          "open_questions",
+          "tasks_proposed",
+          "provider",
+          "model",
+          "chunks",
+          "tokens_in",
+          "tokens_out",
+          "created_at"
+        ],
+        "title": "Analysis"
+      },
+      "AnalysisStatus": {
+        "type": "string",
+        "enum": [
+          "none",
+          "pending",
+          "running",
+          "done",
+          "failed"
+        ],
+        "title": "AnalysisStatus"
+      },
+      "AnalysisStatusInfo": {
+        "properties": {
+          "queue": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Queue"
+          },
+          "current_meeting_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Meeting Id"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "availability_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Availability Error"
+          },
+          "pull": {
+            "$ref": "#/components/schemas/DownloadStatus"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "queue",
+          "current_meeting_id",
+          "provider",
+          "model",
+          "available",
+          "availability_error",
+          "pull"
+        ],
+        "title": "AnalysisStatusInfo"
+      },
+      "CloudKeyUpdate": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 8,
+            "title": "Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "title": "CloudKeyUpdate"
+      },
+      "CloudSettingsPatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "acknowledged": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "CloudSettingsPatch"
+      },
+      "CloudSettingsView": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged",
+            "description": "The user confirmed that transcript text leaves the machine.",
+            "default": false
+          },
+          "base_url": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Base Url",
+            "default": ""
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Model",
+            "default": ""
+          },
+          "has_key": {
+            "type": "boolean",
+            "title": "Has Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "acknowledged",
+          "base_url",
+          "model",
+          "has_key"
+        ],
+        "title": "CloudSettingsView"
+      },
       "Column": {
         "type": "string",
         "enum": [
@@ -1562,6 +2249,17 @@
               }
             ]
           },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
           "error": {
             "anyOf": [
               {
@@ -1579,6 +2277,7 @@
         "required": [
           "state",
           "profile",
+          "model",
           "error"
         ],
         "title": "DownloadStatus"
@@ -1667,6 +2366,218 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LLMModelProfile": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/LLMProfileId"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "ollama_model": {
+            "type": "string",
+            "title": "Ollama Model"
+          },
+          "download_gb": {
+            "type": "number",
+            "title": "Download Gb"
+          },
+          "min_ram_gb": {
+            "type": "integer",
+            "title": "Min Ram Gb"
+          },
+          "installed": {
+            "type": "boolean",
+            "title": "Installed"
+          },
+          "recommended": {
+            "type": "boolean",
+            "title": "Recommended"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description",
+          "ollama_model",
+          "download_gb",
+          "min_ram_gb",
+          "installed",
+          "recommended"
+        ],
+        "title": "LLMModelProfile"
+      },
+      "LLMProfileId": {
+        "type": "string",
+        "enum": [
+          "light",
+          "balanced",
+          "accurate"
+        ],
+        "title": "LLMProfileId"
+      },
+      "LLMPullRequest": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._:/-]+$",
+            "title": "Model"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "model"
+        ],
+        "title": "LLMPullRequest"
+      },
+      "LLMSettings": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "ollama",
+              "cloud"
+            ],
+            "title": "Provider",
+            "default": "ollama"
+          },
+          "ollama_url": {
+            "type": "string",
+            "title": "Ollama Url",
+            "default": "http://127.0.0.1:11434"
+          },
+          "model": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Model",
+            "default": "qwen2.5:7b-instruct"
+          },
+          "chunk_tokens": {
+            "type": "integer",
+            "maximum": 6000.0,
+            "minimum": 500.0,
+            "title": "Chunk Tokens",
+            "default": 1500
+          },
+          "max_tokens_per_meeting": {
+            "type": "integer",
+            "maximum": 500000.0,
+            "minimum": 2000.0,
+            "title": "Max Tokens Per Meeting",
+            "default": 40000
+          },
+          "auto_analyze": {
+            "type": "boolean",
+            "title": "Auto Analyze",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "provider",
+          "ollama_url",
+          "model",
+          "chunk_tokens",
+          "max_tokens_per_meeting",
+          "auto_analyze"
+        ],
+        "title": "LLMSettings"
+      },
+      "LLMSettingsPatch": {
+        "properties": {
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "ollama",
+                  "cloud"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "ollama_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ollama Url"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "chunk_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6000.0,
+                "minimum": 500.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Tokens"
+          },
+          "max_tokens_per_meeting": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 500000.0,
+                "minimum": 2000.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens Per Meeting"
+          },
+          "auto_analyze": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Analyze"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "LLMSettingsPatch"
+      },
       "Meeting": {
         "properties": {
           "id": {
@@ -1743,6 +2654,21 @@
             ],
             "title": "Transcription Error"
           },
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisStatus",
+            "default": "none"
+          },
+          "analysis_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Error"
+          },
           "language": {
             "anyOf": [
               {
@@ -1774,6 +2700,8 @@
           "audio_available",
           "transcription",
           "transcription_error",
+          "analysis",
+          "analysis_error",
           "language",
           "task_count"
         ],
@@ -1887,6 +2815,59 @@
           "high"
         ],
         "title": "Priority"
+      },
+      "ProfileDocument": {
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Yaml"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserProfile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "yaml",
+          "profile",
+          "error"
+        ],
+        "title": "ProfileDocument"
+      },
+      "ProfileUpdate": {
+        "properties": {
+          "yaml": {
+            "type": "string",
+            "maxLength": 20000,
+            "title": "Yaml"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "yaml"
+        ],
+        "title": "ProfileUpdate"
       },
       "PromptAction": {
         "type": "string",
@@ -2722,6 +3703,74 @@
           "download"
         ],
         "title": "TranscriptionStatusInfo"
+      },
+      "UserProfile": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Name",
+            "default": ""
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Email",
+            "default": ""
+          },
+          "nicknames": {
+            "items": {
+              "type": "string",
+              "maxLength": 50
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Nicknames"
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Role",
+            "default": ""
+          },
+          "team": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Team",
+            "default": ""
+          },
+          "projects": {
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Projects"
+          },
+          "keywords": {
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Keywords"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "nicknames",
+          "role",
+          "team",
+          "projects",
+          "keywords"
+        ],
+        "title": "UserProfile",
+        "description": "The user's profile (profile.yaml): used to flag the tasks that concern them."
       },
       "ValidationError": {
         "properties": {

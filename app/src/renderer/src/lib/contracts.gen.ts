@@ -21,6 +21,16 @@ export type EventType =
   | "meeting.silence";
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "LLMProfileId".
+ */
+export type LLMProfileId = "light" | "balanced" | "accurate";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "AnalysisStatus".
+ */
+export type AnalysisStatus = "none" | "pending" | "running" | "done" | "failed";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "MeetingStatus".
  */
 export type MeetingStatus = "recording" | "recorded" | "failed";
@@ -55,6 +65,54 @@ export type Column = "to_validate" | "todo" | "in_progress" | "done";
  */
 export type Priority = "low" | "normal" | "high";
 
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Analysis".
+ */
+export interface Analysis {
+  meeting_id: string;
+  title: string;
+  summary: string;
+  decisions: string[];
+  open_questions: string[];
+  tasks_proposed: number;
+  provider: string;
+  model: string;
+  chunks: number;
+  tokens_in: number;
+  tokens_out: number;
+  created_at: string;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "ExtractedTask".
+ */
+export interface ExtractedTask {
+  title?: string;
+  assignee?: string;
+  /**
+   * ISO date YYYY-MM-DD, only if said.
+   */
+  due?: string | null;
+  confidence?: number;
+  /**
+   * Timestamp of the source line: 'mm:ss' or seconds.
+   */
+  evidence_timestamp?: string | number | null;
+}
+/**
+ * Structured output requested from the LLM (validated by this schema).
+ *
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "AnalysisOutput".
+ */
+export interface AnalysisOutput {
+  title?: string;
+  summary?: string;
+  decisions?: string[];
+  tasks?: ExtractedTask[];
+  open_questions?: string[];
+}
 /**
  * Meeting detection tuning. Detection only observes audio levels; nothing is recorded.
  *
@@ -130,6 +188,32 @@ export interface EvidenceRef {
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "LLMModelProfile".
+ */
+export interface LLMModelProfile {
+  id: LLMProfileId;
+  label: string;
+  description: string;
+  ollama_model: string;
+  download_gb: number;
+  min_ram_gb: number;
+  installed: boolean;
+  recommended: boolean;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "LLMSettings".
+ */
+export interface LLMSettings {
+  provider: "ollama" | "cloud";
+  ollama_url: string;
+  model: string;
+  chunk_tokens: number;
+  max_tokens_per_meeting: number;
+  auto_analyze: boolean;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "Meeting".
  */
 export interface Meeting {
@@ -147,6 +231,8 @@ export interface Meeting {
   audio_available: boolean;
   transcription: TranscriptionStatus;
   transcription_error: string | null;
+  analysis: AnalysisStatus;
+  analysis_error: string | null;
   language: string | null;
   task_count: number;
 }
@@ -287,4 +373,160 @@ export interface TranscriptionSettings {
    * Days to keep the audio after a successful transcription (0 = delete).
    */
   retention_days: 0 | 7 | 30;
+}
+/**
+ * The user's profile (profile.yaml): used to flag the tasks that concern them.
+ *
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "UserProfile".
+ */
+export interface UserProfile {
+  name: string;
+  email: string;
+  /**
+   * @maxItems 20
+   */
+  nicknames:
+    | []
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string]
+    | [string, string, string, string, string]
+    | [string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [string, string, string, string, string, string, string, string, string, string, string, string, string, string]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ]
+    | [
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string,
+        string
+      ];
+  role: string;
+  team: string;
+  /**
+   * @maxItems 50
+   */
+  projects: string[];
+  /**
+   * @maxItems 50
+   */
+  keywords: string[];
 }

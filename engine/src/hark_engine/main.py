@@ -24,6 +24,7 @@ from pathlib import Path
 import uvicorn
 
 from . import __version__
+from .analysis import AnalysisService
 from .api import create_app
 from .audio.capture import FrameSource, SoundcardFrameSource, SyntheticFrameSource
 from .audio.source import SoundcardLoopbackSource
@@ -32,10 +33,19 @@ from .config import DEFAULT_PORT, LOOPBACK_HOST, Settings, default_data_dir
 from .detect import DetectorService
 from .detect.probes import default_probe
 from .events import EventBus
+from .llm import ScriptedProvider
+from .llm.factory import make_provider_factory
 from .models import TrackKind
 from .net import install_guard
+from .profile import ProfileStore
 from .record import Recorder
-from .store import Database, MeetingRepository, SettingsRepository
+from .store import (
+    AnalysisRepository,
+    Database,
+    MeetingRepository,
+    SettingsRepository,
+    TaskRepository,
+)
 from .stt import FakeTranscriber, FasterWhisperTranscriber, ModelManager, TranscriptionService
 
 log = logging.getLogger("hark")
@@ -127,7 +137,24 @@ def main(argv: list[str] | None = None) -> None:
         FakeTranscriber() if fake_stt else FasterWhisperTranscriber(models),
     )
     models.on_installed = stt.on_model_installed
-    app = create_app(db, token, bus, detector, recorder, stt, models)
+    settings_repo = SettingsRepository(db)
+    profile_store = ProfileStore(settings.data_dir / "profile.yaml")
+    fake_provider = ScriptedProvider() if os.environ.get("HARK_FAKE_LLM") == "1" else None
+    analysis = AnalysisService(
+        meetings_repo,
+        AnalysisRepository(db),
+        TaskRepository(db),
+        settings_repo,
+        bus,
+        profile_store,
+        (lambda: fake_provider)
+        if fake_provider
+        else make_provider_factory(settings_repo, settings.data_dir),
+    )
+    app = create_app(
+        db, token, bus, detector, recorder, stt, models, analysis, profile_store, settings.data_dir
+    )
+    analysis.start()
     stt.start()
     detector.start()
 
@@ -158,6 +185,7 @@ def main(argv: list[str] | None = None) -> None:
     finally:
         recorder.stop()  # no-op if the API lifespan already finalized it
         stt.stop()
+        analysis.stop()
         detector.stop()
         db.close()
         settings.runtime_file.unlink(missing_ok=True)

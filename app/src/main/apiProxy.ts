@@ -1,6 +1,6 @@
 /** Renderer → engine requests go through main, so the token never reaches the renderer. */
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE'
+export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 export interface ApiRequest {
   method: HttpMethod
@@ -13,7 +13,7 @@ export interface ApiResponse {
   body: unknown
 }
 
-const METHODS = new Set<HttpMethod>(['GET', 'POST', 'PATCH', 'DELETE'])
+const METHODS = new Set<HttpMethod>(['GET', 'POST', 'PATCH', 'PUT', 'DELETE'])
 const PATH_RE = /^\/v1\/[A-Za-z0-9_\-/.]*(\?[A-Za-z0-9_\-=&%.:]*)?$/
 
 export function validateApiRequest(req: unknown): ApiRequest {

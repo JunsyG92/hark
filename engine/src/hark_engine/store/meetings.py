@@ -10,6 +10,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from ..models import (
+    AnalysisStatus,
     Meeting,
     MeetingStatus,
     Speaker,
@@ -59,6 +60,8 @@ def _row_to_meeting(row: sqlite3.Row) -> Meeting:
         transcription_error=row["transcription_error"],
         language=row["language"],
         task_count=row["task_count"],
+        analysis=AnalysisStatus(row["analysis"]),
+        analysis_error=row["analysis_error"],
     )
 
 
@@ -167,6 +170,23 @@ class MeetingRepository:
                 (status.value, error, language, meeting_id),
             )
         return self.get(meeting_id)
+
+    def set_analysis(
+        self, meeting_id: str, status: AnalysisStatus, error: str | None = None
+    ) -> Meeting:
+        with self.db.tx() as conn:
+            conn.execute(
+                "UPDATE meetings SET analysis = ?, analysis_error = ? WHERE id = ?",
+                (status.value, error, meeting_id),
+            )
+        return self.get(meeting_id)
+
+    def pending_analysis(self) -> list[str]:
+        with self.db.read() as conn:
+            rows = conn.execute(
+                "SELECT id FROM meetings WHERE analysis = 'pending' ORDER BY started_at"
+            ).fetchall()
+        return [r["id"] for r in rows]
 
     def replace_segments(self, meeting_id: str, segments: list[NewSegment]) -> int:
         with self.db.tx() as conn:

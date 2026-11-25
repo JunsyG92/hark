@@ -20,6 +20,8 @@ export function groupTasks(tasks: Task[]): Board {
   const board = Object.fromEntries(COLUMN_IDS.map((c) => [c, [] as Task[]])) as Board
   for (const t of tasks) board[t.column].push(t)
   for (const c of COLUMN_IDS) board[c].sort((a, b) => a.position - b.position)
+  // « À valider » : the user's own tasks first (stable otherwise)
+  board.to_validate.sort((a, b) => Number(b.is_mine) - Number(a.is_mine) || a.position - b.position)
   return board
 }
 

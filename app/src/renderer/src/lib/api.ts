@@ -3,6 +3,8 @@ import type {
   Column,
   DetectionSettings,
   DetectionStatus,
+  LLMModelProfile,
+  LLMSettings,
   Meeting,
   ModelProfile,
   Priority,
@@ -12,9 +14,15 @@ import type {
   Task,
   TranscriptionSettings,
   TranscriptSegment,
+  Analysis,
+  UserProfile,
 } from './contracts.gen'
 
 export type {
+  Analysis,
+  LLMModelProfile,
+  LLMSettings,
+  UserProfile,
   Column,
   DetectionSettings,
   DetectionStatus,
@@ -88,6 +96,19 @@ export function createApi(transport: Transport) {
     patchTranscriptionSettings: (patch: Partial<TranscriptionSettings>) =>
       call<TranscriptionSettings>('PATCH', '/v1/settings/transcription', patch),
     transcriptionStatus: () => call<TranscriptionStatusInfo>('GET', '/v1/transcription/status'),
+    analysis: (id: string) => call<Analysis>('GET', `/v1/meetings/${enc(id)}/analysis`),
+    analyze: (id: string, force = false) =>
+      call<{ status: string }>('POST', `/v1/meetings/${enc(id)}/analyze${force ? '?force=true' : ''}`),
+    llmSettings: () => call<LLMSettings>('GET', '/v1/settings/llm'),
+    patchLlmSettings: (patch: Partial<LLMSettings>) => call<LLMSettings>('PATCH', '/v1/settings/llm', patch),
+    llmModels: () => call<LLMModelProfile[]>('GET', '/v1/llm/models'),
+    pullLlm: (model: string) => call<{ status: string }>('POST', '/v1/llm/pull', { model }),
+    analysisStatus: () => call<AnalysisStatusInfo>('GET', '/v1/analysis/status'),
+    profile: () => call<ProfileDocument>('GET', '/v1/profile'),
+    saveProfile: (yaml: string) => call<ProfileDocument>('PUT', '/v1/profile', { yaml }),
+    cloudSettings: () => call<CloudSettingsView>('GET', '/v1/settings/cloud'),
+    patchCloudSettings: (patch: Partial<CloudSettingsView>) => call<CloudSettingsView>('PATCH', '/v1/settings/cloud', patch),
+    saveCloudKey: (key: string) => call<null>('PUT', '/v1/settings/cloud/key', { key }),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
 }
@@ -98,6 +119,30 @@ export interface TranscriptionStatusInfo {
   progress: number
   model_installed: boolean
   download: { state: 'idle' | 'downloading' | 'done' | 'error'; profile: string | null; error: string | null }
+}
+
+export interface AnalysisStatusInfo {
+  queue: string[]
+  current_meeting_id: string | null
+  provider: string
+  model: string
+  available: boolean
+  availability_error: string | null
+  pull: { state: 'idle' | 'downloading' | 'done' | 'error'; model: string | null; error: string | null }
+}
+
+export interface ProfileDocument {
+  yaml: string
+  profile: UserProfile | null
+  error: string | null
+}
+
+export interface CloudSettingsView {
+  enabled: boolean
+  acknowledged: boolean
+  base_url: string
+  model: string
+  has_key: boolean
 }
 
 export type HarkApi = ReturnType<typeof createApi>

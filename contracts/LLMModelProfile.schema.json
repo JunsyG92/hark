@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/LLMModelProfile.json",
+  "$defs": {
+    "LLMProfileId": {
+      "enum": [
+        "light",
+        "balanced",
+        "accurate"
+      ],
+      "title": "LLMProfileId",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/LLMProfileId"
+    },
+    "label": {
+      "title": "Label",
+      "type": "string"
+    },
+    "description": {
+      "title": "Description",
+      "type": "string"
+    },
+    "ollama_model": {
+      "title": "Ollama Model",
+      "type": "string"
+    },
+    "download_gb": {
+      "title": "Download Gb",
+      "type": "number"
+    },
+    "min_ram_gb": {
+      "title": "Min Ram Gb",
+      "type": "integer"
+    },
+    "installed": {
+      "title": "Installed",
+      "type": "boolean"
+    },
+    "recommended": {
+      "title": "Recommended",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "label",
+    "description",
+    "ollama_model",
+    "download_gb",
+    "min_ram_gb",
+    "installed",
+    "recommended"
+  ],
+  "title": "LLMModelProfile",
+  "type": "object"
+}

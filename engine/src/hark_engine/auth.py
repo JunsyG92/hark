@@ -72,3 +72,33 @@ def load_or_create_master_token(data_dir: Path) -> str:
 
 def tokens_equal(a: str, b: str) -> bool:
     return hmac.compare_digest(a.encode(), b.encode())
+
+
+def _secret_file(data_dir: Path, name: str) -> Path:
+    return data_dir / f".secret-{name}"
+
+
+def save_secret(data_dir: Path, name: str, value: str) -> None:
+    """Store an API key in the OS credential manager (fallback: 0600 file)."""
+    if _keyring_usable():
+        try:
+            keyring.set_password(KEYRING_SERVICE, name, value)
+            _secret_file(data_dir, name).unlink(missing_ok=True)
+            return
+        except keyring.errors.KeyringError as exc:  # pragma: no cover - OS specific
+            log.warning("OS credential store unavailable (%s); using file fallback", exc)
+    path = _secret_file(data_dir, name)
+    path.write_text(value, encoding="utf-8")
+    path.chmod(0o600)
+
+
+def load_secret(data_dir: Path, name: str) -> str | None:
+    if _keyring_usable():
+        try:
+            value = keyring.get_password(KEYRING_SERVICE, name)
+            if value:
+                return value
+        except keyring.errors.KeyringError:  # pragma: no cover - OS specific
+            pass
+    path = _secret_file(data_dir, name)
+    return path.read_text(encoding="utf-8").strip() if path.exists() else None

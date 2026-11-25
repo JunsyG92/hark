@@ -22,7 +22,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   const app = await electron.launch({
     executablePath: electronPath,
     args: [...sandboxArgs, appDir],
-    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1' },
+    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1' },
   })
   const logs = []
   app.process().stdout.on('data', (d) => logs.push(String(d)))
@@ -136,6 +136,39 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   await win.screenshot({ path: join(outDir, 'meetings.png') })
   await win.fill('.meetings__search', '')
   await win.click('button.tab:has-text("Kanban")')
+  // --- analysis (step 5, synthetic LLM): automatic after the transcript, tasks only in « À valider »
+  const waitAnalysis = async (id) => {
+    for (let i = 0; i < 100; i++) {
+      const cur = (await call('GET', '/v1/meetings/' + id)).body
+      if (cur.analysis === 'done') return cur
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    throw new Error('analysis did not finish')
+  }
+  await waitAnalysis(m.id)
+  const proposed = (await call('GET', '/v1/tasks?column=to_validate')).body
+  if (proposed.length !== 2 || proposed.some((t) => t.source !== 'meeting:' + m.id)) throw new Error('bad proposals ' + JSON.stringify(proposed))
+  if ((await call('GET', '/v1/tasks?column=todo')).body.some((t) => t.source.startsWith('meeting:'))) throw new Error('AI task outside À valider')
+  const mine = proposed.filter((t) => t.is_mine)
+  if (mine.length !== 1 || !mine[0].title.startsWith('Envoyer le budget') || mine[0].evidence.start_ms !== 4000) throw new Error('mine flag wrong ' + JSON.stringify(proposed))
+  const an = (await call('GET', '/v1/meetings/' + m.id + '/analysis')).body
+  if (!an.summary.includes('réserve') || an.tokens_in <= 0 || an.tasks_proposed !== 2) throw new Error('bad analysis ' + JSON.stringify(an))
+  if (!(await call('GET', '/v1/search?q=reserve')).body.some((h) => h.kind === 'summary')) throw new Error('summary not searchable')
+  // cache: asking again for the same input must not run the LLM again
+  await call('POST', '/v1/meetings/' + m.id + '/analyze')
+  await new Promise((r) => setTimeout(r, 800))
+  const again = (await call('GET', '/v1/meetings/' + m.id + '/analysis')).body
+  if (again.created_at !== an.created_at) throw new Error('analysis was recomputed for identical input')
+  // UI: mine first in the column, link from the task to the source excerpt
+  await win.waitForSelector('[data-column=to_validate] [data-testid=task-card]')
+  const firstCard = win.locator('[data-column=to_validate] [data-testid=task-card]').first()
+  if (!(await firstCard.getAttribute('class')).includes('card--mine')) throw new Error('my task is not first in À valider')
+  await firstCard.click()
+  await win.click('button:has-text("voir l’extrait")')
+  await win.waitForSelector('.transcript__row--focus:has-text("budget")')
+  await win.waitForSelector('text=Le budget est validé avec une réserve')
+  await win.screenshot({ path: join(outDir, 'analysis.png') })
+  await win.click('button.tab:has-text("Kanban")')
   // default retention: audio removed right after a successful transcription, transcript kept
   await call('PATCH', '/v1/settings/transcription', { retention_days: 0 })
   await call('POST', '/v1/meetings/' + m.id + '/transcribe').catch(() => undefined)
@@ -158,7 +191,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   if (doneTitles.join() !== 'Relire le contrat') throw new Error('drag and drop failed')
   await app.close()
   // restart to verify persistence
-  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1' } })
+  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1' } })
   const w2 = await kanbanWindow(app2); await w2.waitForSelector('text=Relire le contrat')
   const persisted = await w2.locator('[data-testid=task-card]').count()
   console.log('persisted:', persisted)
@@ -169,7 +202,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   if (!interrupted || interrupted.duration_ms < 1000) throw new Error('interrupted recording not finalized')
   if ((await call2('GET', '/v1/recording/status')).body.recording) throw new Error('recording resumed by itself after restart')
   console.log('finalized on quit:', interrupted.duration_ms, 'ms')
-  if (persisted !== 3) throw new Error('tasks not persisted')
+  if (persisted !== 5) throw new Error('tasks not persisted: ' + persisted)
   await app2.close()
   console.log(logs.join('').split('\n').filter(l => l.includes('[hark]')).join('\n'))
 })().catch((e) => { console.error(e); process.exit(1) })

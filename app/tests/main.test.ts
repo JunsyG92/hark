@@ -45,7 +45,7 @@ describe('engine', () => {
 describe('api proxy', () => {
   it('only allows /v1 paths and known methods', () => {
     expect(validateApiRequest({ method: 'GET', path: '/v1/tasks' })).toEqual({ method: 'GET', path: '/v1/tasks', body: undefined })
-    expect(() => validateApiRequest({ method: 'PUT', path: '/v1/tasks' })).toThrow()
+    expect(() => validateApiRequest({ method: 'OPTIONS', path: '/v1/tasks' })).toThrow()
     expect(() => validateApiRequest({ method: 'GET', path: 'http://evil/v1' })).toThrow()
     expect(() => validateApiRequest({ method: 'GET', path: '/v1/../health' })).toThrow()
     expect(() => validateApiRequest({ method: 'GET', path: '/health' })).toThrow()

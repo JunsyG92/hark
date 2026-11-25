@@ -2,6 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "hark://contracts/Meeting.json",
   "$defs": {
+    "AnalysisStatus": {
+      "enum": [
+        "none",
+        "pending",
+        "running",
+        "done",
+        "failed"
+      ],
+      "title": "AnalysisStatus",
+      "type": "string"
+    },
     "MeetingStatus": {
       "enum": [
         "recording",
@@ -110,6 +121,22 @@
       "default": null,
       "title": "Transcription Error"
     },
+    "analysis": {
+      "$ref": "#/$defs/AnalysisStatus",
+      "default": "none"
+    },
+    "analysis_error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Analysis Error"
+    },
     "language": {
       "anyOf": [
         {
@@ -140,6 +167,8 @@
     "audio_available",
     "transcription",
     "transcription_error",
+    "analysis",
+    "analysis_error",
     "language",
     "task_count"
   ],

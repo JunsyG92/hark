@@ -13,7 +13,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ColumnView } from './components/ColumnView'
-import { MeetingsView } from './components/MeetingsView'
+import { MeetingsView, type FocusRequest } from './components/MeetingsView'
 import { RecordingBar } from './components/RecordingBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { TaskCard } from './components/TaskCard'
@@ -27,6 +27,7 @@ export function App() {
   const [editing, setEditing] = useState<Task | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [view, setView] = useState<'kanban' | 'meetings'>('kanban')
+  const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const [dragged, setDragged] = useState<Task | null>(null)
   const [error, setError] = useState<string | null>(null)
   const dragOrigin = useRef<Column | null>(null)
@@ -125,7 +126,7 @@ export function App() {
       </header>
       {error && <div className="banner">{error}</div>}
       {view === 'meetings' ? (
-        <MeetingsView api={api} onError={setError} />
+        <MeetingsView api={api} onError={setError} focusRequest={focusRequest} />
       ) : (
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={(e) => void onDragEnd(e)} onDragCancel={() => void reload()}>
         <main className="board">
@@ -141,6 +142,11 @@ export function App() {
           key={editing.id}
           task={editing}
           onClose={() => setEditing(null)}
+          onOpenEvidence={(id, ms) => {
+            setFocusRequest({ id, ms, nonce: Date.now() })
+            setEditing(null)
+            setView('meetings')
+          }}
           onSave={async (patch) => {
             await api.updateTask(editing.id, patch)
             await reload()

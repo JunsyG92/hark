@@ -37,6 +37,17 @@ export function transcriptionLabel(m: Pick<Meeting, 'status' | 'transcription' |
   }
 }
 
+export function analysisLabel(m: Pick<Meeting, 'transcription' | 'analysis' | 'analysis_error'>): string {
+  if (m.transcription !== 'done') return ''
+  switch (m.analysis) {
+    case 'done': return 'analysée'
+    case 'running': return 'analyse en cours…'
+    case 'pending': return m.analysis_error?.startsWith('llm_unavailable') ? 'analyse en attente du LLM' : 'analyse en file d’attente'
+    case 'failed': return 'analyse en échec'
+    default: return 'non analysée'
+  }
+}
+
 export interface SnippetPart { text: string; match: boolean }
 
 /** Split an FTS snippet into plain/match parts. Only <mark> is interpreted; everything else is text. */

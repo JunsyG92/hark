@@ -10,7 +10,7 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 SOURCE_PATTERN = r"^(manual|meeting:[A-Za-z0-9_-]{1,64}|plugin:[a-z0-9][a-z0-9-]{0,63})$"
 
@@ -227,6 +227,14 @@ class TranscriptSegment(Strict):
     text: str
 
 
+class AnalysisStatus(StrEnum):
+    NONE = "none"
+    PENDING = "pending"  # waiting (queue, or the LLM is not reachable yet)
+    RUNNING = "running"
+    DONE = "done"
+    FAILED = "failed"
+
+
 class Meeting(Strict):
     id: str
     title: ShortText = ""
@@ -239,6 +247,8 @@ class Meeting(Strict):
     audio_available: bool = Field(description="Audio files still on disk (see retention).")
     transcription: TranscriptionStatus = TranscriptionStatus.NONE
     transcription_error: str | None = None
+    analysis: AnalysisStatus = AnalysisStatus.NONE
+    analysis_error: str | None = None
     language: str | None = None
     task_count: int = 0
 
@@ -314,6 +324,7 @@ class TranscriptionSettingsPatch(Strict):
 class DownloadStatus(Strict):
     state: Literal["idle", "downloading", "done", "error"]
     profile: ModelProfileId | None = None
+    model: str | None = None
     error: str | None = None
 
 
@@ -338,6 +349,171 @@ class SearchHit(Strict):
     speaker: Speaker | None = None
 
 
+class LenientModel(BaseModel):
+    """For model-generated JSON: unknown keys are ignored, then everything is re-validated."""
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class ExtractedTask(LenientModel):
+    title: str = ""
+    assignee: str = ""
+    due: str | None = Field(default=None, description="ISO date YYYY-MM-DD, only if said.")
+    confidence: float = Field(default=0.5, ge=0, le=1)
+    evidence_timestamp: str | int | float | None = Field(
+        default=None, description="Timestamp of the source line: 'mm:ss' or seconds."
+    )
+
+
+class AnalysisOutput(LenientModel):
+    """Structured output requested from the LLM (validated by this schema)."""
+
+    title: str = ""
+    summary: str = ""
+    decisions: list[str] = Field(default_factory=list)
+    tasks: list[ExtractedTask] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+
+
+class Analysis(Strict):
+    meeting_id: str
+    title: str
+    summary: str
+    decisions: list[str]
+    open_questions: list[str]
+    tasks_proposed: int
+    provider: str
+    model: str
+    chunks: int
+    tokens_in: int
+    tokens_out: int
+    created_at: datetime
+
+
+class UserProfile(Strict):
+    """The user's profile (profile.yaml): used to flag the tasks that concern them."""
+
+    name: ShortText = ""
+    email: ShortText = ""
+    nicknames: list[Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)]] = (
+        Field(default_factory=list, max_length=20)
+    )
+    role: ShortText = ""
+    team: ShortText = ""
+    projects: list[Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]] = (
+        Field(default_factory=list, max_length=50)
+    )
+    keywords: list[Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]] = (
+        Field(default_factory=list, max_length=50)
+    )
+
+
+class ProfileDocument(Strict):
+    yaml: Annotated[str, StringConstraints(max_length=20_000)]
+    profile: UserProfile | None = None
+    error: str | None = None
+
+
+class ProfileUpdate(Strict):
+    yaml: Annotated[str, StringConstraints(max_length=20_000)]
+
+
+class LLMSettings(Strict):
+    provider: Literal["ollama", "cloud"] = "ollama"
+    ollama_url: str = "http://127.0.0.1:11434"
+    model: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ] = "qwen2.5:7b-instruct"
+    chunk_tokens: int = Field(default=1500, ge=500, le=6000)
+    max_tokens_per_meeting: int = Field(default=40_000, ge=2_000, le=500_000)
+    auto_analyze: bool = True
+
+    @field_validator("ollama_url")
+    @classmethod
+    def _loopback_only(cls, value: str) -> str:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(value)
+        if parsed.scheme not in ("http", "https") or parsed.hostname not in (
+            "127.0.0.1",
+            "localhost",
+            "::1",
+        ):
+            raise ValueError("the local LLM server must be on this machine (127.0.0.1)")
+        return value.rstrip("/")
+
+
+class LLMSettingsPatch(Strict):
+    provider: Literal["ollama", "cloud"] | None = None
+    ollama_url: str | None = None
+    model: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+        | None
+    ) = None
+    chunk_tokens: int | None = Field(default=None, ge=500, le=6000)
+    max_tokens_per_meeting: int | None = Field(default=None, ge=2_000, le=500_000)
+    auto_analyze: bool | None = None
+
+
+class CloudSettings(Strict):
+    """Optional cloud LLM. Disabled by default; sends transcript text off this machine when used."""
+
+    enabled: bool = False
+    acknowledged: bool = Field(
+        default=False, description="The user confirmed that transcript text leaves the machine."
+    )
+    base_url: Annotated[str, StringConstraints(max_length=300)] = ""
+    model: Annotated[str, StringConstraints(max_length=100)] = ""
+
+
+class CloudSettingsPatch(Strict):
+    enabled: bool | None = None
+    acknowledged: bool | None = None
+    base_url: Annotated[str, StringConstraints(max_length=300)] | None = None
+    model: Annotated[str, StringConstraints(max_length=100)] | None = None
+
+
+class CloudSettingsView(CloudSettings):
+    has_key: bool
+
+
+class CloudKeyUpdate(Strict):
+    key: Annotated[str, StringConstraints(min_length=8, max_length=500)]
+
+
+class LLMProfileId(StrEnum):
+    LIGHT = "light"
+    BALANCED = "balanced"
+    ACCURATE = "accurate"
+
+
+class LLMModelProfile(Strict):
+    id: LLMProfileId
+    label: str
+    description: str
+    ollama_model: str
+    download_gb: float
+    min_ram_gb: int
+    installed: bool
+    recommended: bool
+
+
+class LLMPullRequest(Strict):
+    model: Annotated[
+        str, StringConstraints(min_length=1, max_length=100, pattern=r"^[A-Za-z0-9._:/-]+$")
+    ]
+
+
+class AnalysisStatusInfo(Strict):
+    queue: list[str]
+    current_meeting_id: str | None
+    provider: str
+    model: str
+    available: bool
+    availability_error: str | None
+    pull: DownloadStatus
+
+
 # name -> (model, schema mode). Inputs use "validation", outputs "serialization".
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
@@ -354,4 +530,9 @@ CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "seriali
     "TranscriptionSettings": (TranscriptionSettings, "serialization"),
     "ModelProfile": (ModelProfile, "serialization"),
     "SearchHit": (SearchHit, "serialization"),
+    "Analysis": (Analysis, "serialization"),
+    "AnalysisOutput": (AnalysisOutput, "validation"),
+    "UserProfile": (UserProfile, "serialization"),
+    "LLMSettings": (LLMSettings, "serialization"),
+    "LLMModelProfile": (LLMModelProfile, "serialization"),
 }

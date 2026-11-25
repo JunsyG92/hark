@@ -14,6 +14,7 @@ dependencies = [
   "numpy>=2.4.6",
   "soundfile>=0.14.0",
   "faster-whisper>=1.2.1",
+  "httpx>=0.28.1",
 ]
 
 [project.scripts]
@@ -39,6 +40,8 @@ select = ["E", "F", "I", "B", "UP", "S", "SIM"]
 ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
+"src/hark_engine/analysis/prompts.py" = ["E501"]  # French prompt text
+"src/hark_engine/store/analyses.py" = ["E501"]  # SQL
 "tests/*" = ["S"]
 
 [tool.pytest.ini_options]

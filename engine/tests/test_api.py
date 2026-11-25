@@ -197,3 +197,93 @@ def test_models_and_transcription_settings_endpoints(client: TestClient, anon: T
     assert anon.post("/v1/models/download", json={"profile": "light"}).status_code == 401
     st = client.get("/v1/transcription/status").json()
     assert st["queue"] == [] and st["model_installed"] is False
+
+
+def test_analysis_profile_llm_and_cloud_endpoints(db, bus, tmp_path):
+    from hark_engine.api import create_app
+
+    app = create_app(db, "tok", bus, data_dir=tmp_path)
+    c = TestClient(app, headers={"Authorization": "Bearer tok"})
+    anon = TestClient(app)
+    for path in (
+        "/v1/profile",
+        "/v1/settings/llm",
+        "/v1/settings/cloud",
+        "/v1/llm/models",
+        "/v1/analysis/status",
+    ):
+        assert anon.get(path).status_code == 401
+    # profile.yaml
+    assert "nicknames" in c.get("/v1/profile").json()["yaml"]
+    ok = c.put("/v1/profile", json={"yaml": 'name: "Mathieu Nesseir"\nnicknames: [Mat]\n'})
+    assert (
+        ok.json()["profile"]["name"] == "Mathieu Nesseir" and (tmp_path / "profile.yaml").exists()
+    )
+    bad = c.put("/v1/profile", json={"yaml": "unknown: 1"})
+    assert bad.status_code == 422 and "unknown" in bad.json()["detail"]
+    assert c.put("/v1/profile", json={"yaml": "name: [1"}).status_code == 422
+    assert anon.put("/v1/profile", json={"yaml": ""}).status_code == 401
+    assert c.get("/v1/profile").json()["profile"]["name"] == "Mathieu Nesseir"
+    # LLM settings
+    assert c.get("/v1/settings/llm").json()["provider"] == "ollama"
+    assert (
+        c.patch("/v1/settings/llm", json={"model": "llama3.1:8b", "chunk_tokens": 2000}).json()[
+            "model"
+        ]
+        == "llama3.1:8b"
+    )
+    assert (
+        c.patch("/v1/settings/llm", json={"ollama_url": "http://example.com:11434"}).status_code
+        == 422
+    )
+    assert c.patch("/v1/settings/llm", json={"chunk_tokens": 10}).status_code == 422
+    assert c.patch("/v1/settings/llm", json={"provider": "other"}).status_code == 422
+    # cloud: off by default, cannot be enabled without acknowledgement, key never returned
+    view = c.get("/v1/settings/cloud").json()
+    assert view == {
+        "enabled": False,
+        "acknowledged": False,
+        "base_url": "",
+        "model": "",
+        "has_key": False,
+    }
+    assert c.patch("/v1/settings/cloud", json={"enabled": True}).status_code == 422
+    assert c.put("/v1/settings/cloud/key", json={"key": "short"}).status_code == 422
+    assert c.put("/v1/settings/cloud/key", json={"key": "sk-secret-123456"}).status_code == 204
+    after = c.patch(
+        "/v1/settings/cloud",
+        json={
+            "acknowledged": True,
+            "enabled": True,
+            "base_url": "https://x.example/v1",
+            "model": "m",
+        },
+    )
+    assert after.json()["has_key"] is True and "sk-secret" not in after.text
+    assert anon.put("/v1/settings/cloud/key", json={"key": "sk-secret-123456"}).status_code == 401
+    # models, pull validation, status, analysis routes
+    models = c.get("/v1/llm/models").json()
+    assert [m["id"] for m in models] == ["light", "balanced", "accurate"]
+    assert sum(m["recommended"] for m in models) == 1
+    assert c.post("/v1/llm/pull", json={"model": "bad name; rm -rf"}).status_code == 422
+    assert anon.post("/v1/llm/pull", json={"model": "qwen2.5:3b"}).status_code == 401
+    st = c.get("/v1/analysis/status").json()
+    assert st["queue"] == [] and st["pull"]["state"] == "idle" and "model" in st
+    assert c.get("/v1/meetings/unknown/analysis").status_code == 404
+    assert c.post("/v1/meetings/unknown/analyze").status_code == 404
+
+
+def test_analyze_needs_a_transcript_and_analysis_404_until_done(db, bus, tmp_path):
+    from hark_engine.api import create_app
+    from hark_engine.models import MeetingStatus
+    from hark_engine.store import MeetingRepository
+
+    repo = MeetingRepository(db)
+    repo.create("m1", "t", "", {})
+    repo.finish("m1", MeetingStatus.RECORDED, 1000)
+    c = TestClient(
+        create_app(db, "tok", bus, data_dir=tmp_path), headers={"Authorization": "Bearer tok"}
+    )
+    assert c.get("/v1/meetings/m1/analysis").status_code == 404
+    assert c.post("/v1/meetings/m1/analyze").status_code == 409
+    assert c.get("/v1/meetings").json()[0]["analysis"] == "none"

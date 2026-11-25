@@ -14,10 +14,12 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from .. import __version__
+from ..analysis import AnalysisService
 from ..audio.source import AudioUnavailableError
 from ..detect import DetectorService
 from ..events import EventBus
 from ..export import export_markdown
+from ..llm.factory import make_provider_factory
 from ..models import (
     Column,
     DetectionSettings,
@@ -45,8 +47,10 @@ from ..models import (
     TranscriptionStatusInfo,
     TranscriptSegment,
 )
+from ..profile import ProfileStore
 from ..record import Recorder, RecorderBusy
 from ..store import (
+    AnalysisRepository,
     Database,
     MeetingNotFound,
     MeetingRepository,
@@ -55,6 +59,7 @@ from ..store import (
     TaskRepository,
 )
 from ..stt import PROFILES, ModelManager, TranscriptionService, has_cuda, recommend, total_ram_gb
+from .analysis_routes import add_analysis_routes
 from .deps import ProposeScope, ReadScope, UiScope
 from .stream import EventBroker, format_sse
 
@@ -85,6 +90,9 @@ def create_app(
     recorder: Recorder | None = None,
     transcription: TranscriptionService | None = None,
     models: ModelManager | None = None,
+    analysis: AnalysisService | None = None,
+    profile_store: ProfileStore | None = None,
+    data_dir: Path | None = None,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
@@ -95,6 +103,7 @@ def create_app(
         await run_in_threadpool(app.state.recorder.stop)
         await run_in_threadpool(app.state.detector.stop)
         await run_in_threadpool(app.state.transcription.stop)
+        await run_in_threadpool(app.state.analysis.stop)
 
     app = FastAPI(
         lifespan=lifespan,
@@ -123,6 +132,18 @@ def create_app(
         meetings, settings_repo, events, model_manager, None
     )
     app.state.transcription = stt_service
+    scratch = data_dir or Path(tempfile.gettempdir()) / "hark-unused"
+    profiles = profile_store or ProfileStore(scratch / "profile.yaml")
+    analyses = AnalysisRepository(db)
+    analysis_service = analysis or AnalysisService(
+        meetings, analyses, TaskRepository(db), settings_repo, events, profiles,
+        make_provider_factory(settings_repo, scratch),
+    )  # fmt: skip
+    app.state.analysis = analysis_service
+    add_analysis_routes(
+        app, meetings=meetings, analyses=analyses, service=analysis_service,
+        settings=settings_repo, profile=profiles, data_dir=scratch,
+    )  # fmt: skip
 
     def _accept(prompt: object) -> bool:
         # Only the user's click on "Enregistrer" reaches this point.

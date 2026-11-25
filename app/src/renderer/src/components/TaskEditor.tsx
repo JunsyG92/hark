@@ -8,9 +8,10 @@ interface Props {
   onDelete: () => Promise<void>
   onAccept: () => Promise<void>
   onClose: () => void
+  onOpenEvidence?: (meetingId: string, startMs: number) => void
 }
 
-export function TaskEditor({ task, onSave, onDelete, onAccept, onClose }: Props) {
+export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEvidence }: Props) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [assignee, setAssignee] = useState(task.assignee)
@@ -57,7 +58,14 @@ export function TaskEditor({ task, onSave, onDelete, onAccept, onClose }: Props)
         </div>
         <p className="modal__source">
           Source : {sourceLabel(task.source)}
-          {task.evidence && ` · extrait à ${formatMs(task.evidence.start_ms)}`}
+          {task.evidence && onOpenEvidence ? (
+            <>
+              {' · '}
+              <button type="button" className="linklike" onClick={() => onOpenEvidence(task.evidence!.meeting_id, task.evidence!.start_ms)}>
+                voir l’extrait à {formatMs(task.evidence.start_ms)}
+              </button>
+            </>
+          ) : task.evidence ? ` · extrait à ${formatMs(task.evidence.start_ms)}` : ''}
           {task.confidence !== null && ` · confiance ${Math.round(task.confidence * 100)} %`}
         </p>
         {error && <p className="modal__error">{error}</p>}

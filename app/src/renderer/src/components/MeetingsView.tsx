@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { HarkApi, Meeting, SearchHit, Task, TranscriptSegment } from '../lib/api'
+import type { Analysis, HarkApi, Meeting, SearchHit, Task, TranscriptSegment } from '../lib/api'
 import { COLUMNS } from '../lib/board'
 import {
-  displayTitle, durationLabel, formatDateTime, parseSnippet, timestamp, transcriptionLabel,
+  analysisLabel, displayTitle, durationLabel, formatDateTime, parseSnippet, timestamp, transcriptionLabel,
 } from '../lib/meetings'
 
 const SPEAKER = { me: 'Moi', others: 'Autres' } as const
@@ -17,7 +17,19 @@ function Snippet({ text }: { text: string }) {
   )
 }
 
-export function MeetingsView({ api, onError }: { api: HarkApi; onError: (msg: string | null) => void }) {
+export interface FocusRequest {
+  id: string
+  ms: number
+  nonce: number
+}
+
+export function MeetingsView({
+  api, onError, focusRequest,
+}: {
+  api: HarkApi
+  onError: (msg: string | null) => void
+  focusRequest?: FocusRequest | null
+}) {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[] | null>(null)
@@ -53,6 +65,10 @@ export function MeetingsView({ api, onError }: { api: HarkApi; onError: (msg: st
     }, 250)
     return () => window.clearTimeout(timer)
   }, [api, query])
+
+  useEffect(() => {
+    if (focusRequest) setSelected({ id: focusRequest.id, focusMs: focusRequest.ms })
+  }, [focusRequest])
 
   const current = selected ? meetings.find((m) => m.id === selected.id) : undefined
 
@@ -92,7 +108,9 @@ export function MeetingsView({ api, onError }: { api: HarkApi; onError: (msg: st
                   <span className="meeting-row__meta">
                     {formatDateTime(m.started_at)} · {durationLabel(m.duration_ms)} · {m.task_count} tâche{m.task_count > 1 ? 's' : ''}
                   </span>
-                  <span className={`meeting-row__status meeting-row__status--${m.transcription}`}>{transcriptionLabel(m)}</span>
+                  <span className={`meeting-row__status meeting-row__status--${m.transcription}`}>
+                    {transcriptionLabel(m)}{analysisLabel(m) ? ` · ${analysisLabel(m)}` : ''}
+                  </span>
                 </button>
               </li>
             ))}
@@ -122,6 +140,7 @@ function MeetingDetail({
 }) {
   const [segments, setSegments] = useState<TranscriptSegment[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
+  const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [title, setTitle] = useState(meeting.title)
   const focusRef = useRef<HTMLLIElement | null>(null)
 
@@ -129,10 +148,12 @@ function MeetingDetail({
     let alive = true
     void api.transcript(meeting.id).then((s) => alive && setSegments(s)).catch(() => undefined)
     void api.meetingTasks(meeting.id).then((t) => alive && setTasks(t)).catch(() => undefined)
+    if (meeting.analysis === 'done') void api.analysis(meeting.id).then((a) => alive && setAnalysis(a)).catch(() => alive && setAnalysis(null))
+    else setAnalysis(null)
     return () => {
       alive = false
     }
-  }, [api, meeting.id, meeting.transcription])
+  }, [api, meeting.id, meeting.transcription, meeting.analysis])
 
   useEffect(() => {
     focusRef.current?.scrollIntoView?.({ block: 'center' })
@@ -170,6 +191,15 @@ function MeetingDetail({
     }
   }
 
+  async function analyze(force: boolean) {
+    try {
+      await api.analyze(meeting.id, force)
+      await onChanged()
+    } catch (err) {
+      onError((err as Error).message)
+    }
+  }
+
   async function retry() {
     try {
       await api.retranscribe(meeting.id)
@@ -189,15 +219,35 @@ function MeetingDetail({
         {meeting.app ? ` · ${meeting.app}` : ''} · {transcriptionLabel(meeting)}
       </p>
       {waitingModel && <p className="banner banner--info">Aucun modèle de transcription installé : ouvre Réglages → Transcription et télécharge-en un. L’audio est conservé en attendant.</p>}
+      {meeting.analysis === 'pending' && meeting.analysis_error?.startsWith('llm_unavailable') && (
+        <p className="banner banner--info">Analyse en attente : {meeting.analysis_error.replace('llm_unavailable: ', '')} (Réglages → Analyse IA).</p>
+      )}
+      {meeting.analysis === 'failed' && <p className="banner">L’analyse a échoué ({meeting.analysis_error}).</p>}
       {meeting.transcription === 'failed' && <p className="banner">La transcription a échoué ({meeting.transcription_error}). L’audio est conservé.</p>}
       <div className="detail__actions">
         <button className="btn" onClick={() => void exportMd()} disabled={segments.length === 0}>Exporter en Markdown</button>
         {meeting.audio_available && meeting.status === 'recorded' && meeting.transcription !== 'running' && (
           <button className="btn" onClick={() => void retry()}>{meeting.transcription === 'done' ? 'Retranscrire' : 'Transcrire'}</button>
         )}
+        {meeting.transcription === 'done' && meeting.analysis !== 'running' && (
+          <button className="btn" onClick={() => void analyze(meeting.analysis === 'done')} title={meeting.analysis === 'done' ? 'Relance l’IA même si rien n’a changé (consomme des tokens)' : undefined}>
+            {meeting.analysis === 'done' ? 'Ré-analyser' : 'Analyser'}
+          </button>
+        )}
         <span className="spacer" />
         <button className="btn btn--danger" onClick={() => void remove()}>Supprimer</button>
       </div>
+      {analysis && (
+        <div className="detail__analysis">
+          <h3>Résumé</h3>
+          <p className="detail__summary">{analysis.summary}</p>
+          {analysis.decisions.length > 0 && (<><h3>Décisions</h3><ul>{analysis.decisions.map((d) => <li key={d}>{d}</li>)}</ul></>)}
+          {analysis.open_questions.length > 0 && (<><h3>Questions ouvertes</h3><ul>{analysis.open_questions.map((q) => <li key={q}>{q}</li>)}</ul></>)}
+          <p className="detail__meta">
+            {analysis.tasks_proposed} tâche{analysis.tasks_proposed > 1 ? 's' : ''} proposée{analysis.tasks_proposed > 1 ? 's' : ''} dans « À valider » · {analysis.model} · {analysis.tokens_in + analysis.tokens_out} tokens ({analysis.chunks} bloc{analysis.chunks > 1 ? 's' : ''})
+          </p>
+        </div>
+      )}
       {tasks.length > 0 && (
         <div className="detail__tasks">
           <h3>Tâches liées</h3>
