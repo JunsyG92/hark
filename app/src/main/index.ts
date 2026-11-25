@@ -1,10 +1,13 @@
-import { app, globalShortcut, ipcMain } from 'electron'
+import { Notification, app, globalShortcut, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { forward, validateApiRequest } from './apiProxy'
 import { setLaunchAtLogin } from './autostart'
+import { parseDetected, parseToastResponse } from './detection'
 import { Engine, resolveEngineCommand } from './engine'
+import { EngineEvents } from './events'
 import { SettingsStore, isValidAccelerator, type AppSettings } from './settings'
 import { AppTray } from './tray'
+import { ToastWindow } from './toast'
 import { KanbanWindow } from './window'
 
 const log = (msg: string): void => console.log(`[hark] ${msg}`)
@@ -25,6 +28,7 @@ async function main(): Promise<void> {
   await app.whenReady()
   const settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'))
   const kanban = new KanbanWindow(log)
+  const toast = new ToastWindow()
   const engine = new Engine(
     resolveEngineCommand({
       isPackaged: app.isPackaged,
@@ -78,7 +82,46 @@ async function main(): Promise<void> {
   )
   ipcMain.on('hark:hide', () => kanban.hide())
 
+  ipcMain.on('hark:toast:respond', (e, raw: unknown) => {
+    if (e.sender !== toast.webContents) return // only our toast window may answer
+    const answer = parseToastResponse(raw)
+    toast.hide()
+    if (!answer) return
+    void (async () => {
+      try {
+        const res = await forward(
+          { method: 'POST', path: '/v1/detection/respond', body: { prompt_id: answer.promptId, action: answer.action } },
+          await engine.ready(),
+        )
+        const body = res.body as { ok?: boolean; recording_started?: boolean } | null
+        if (answer.action === 'record' && body?.ok && !body.recording_started) {
+          new Notification({
+            title: 'Hark',
+            body: "L'enregistrement n'est pas encore disponible dans cette version (étape 3). Rien n'a été enregistré.",
+          }).show()
+        }
+      } catch (err) {
+        log(`could not send toast answer: ${(err as Error).message}`)
+      }
+    })()
+  })
+
+  const events = new EngineEvents(
+    () => engine.ready(),
+    (ev) => {
+      if (ev.type === 'meeting.detected') {
+        const prompt = parseDetected(ev.data)
+        if (prompt) toast.show(prompt)
+      } else if (ev.type.startsWith('task.')) {
+        kanban.webContents?.send('hark:tasks-changed')
+      }
+    },
+    log,
+  )
+
   kanban.create()
+  toast.create()
+  events.start()
   tray.create()
   registerShortcut(settings.get().shortcut)
 
@@ -89,6 +132,8 @@ async function main(): Promise<void> {
   })
   app.on('before-quit', () => {
     kanban.setQuitting()
+    events.stop()
+    toast.destroy()
     globalShortcut.unregisterAll()
     engine.stop()
   })

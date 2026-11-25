@@ -118,10 +118,81 @@ class Event(Strict):
     data: dict[str, Any] = Field(default_factory=dict)
 
 
+class PromptAction(StrEnum):
+    RECORD = "record"
+    DECLINE = "decline"
+    IGNORE = "ignore"
+
+
+class DetectionPhase(StrEnum):
+    DISABLED = "disabled"
+    IDLE = "idle"
+    PROMPTED = "prompted"
+    COOLDOWN = "cooldown"
+    RECORDING = "recording"
+
+
+class DetectionSettings(Strict):
+    """Meeting detection tuning. Detection only observes audio levels; nothing is recorded."""
+
+    enabled: bool = True
+    threshold_db: float = Field(default=-45.0, ge=-80.0, le=-10.0, description="RMS dBFS.")
+    min_seconds: float = Field(default=8.0, ge=1.0, le=120.0)
+    require_mic_in_use: bool = Field(
+        default=True, description="Another app must be using the microphone (call signal)."
+    )
+    prompt_seconds: float = Field(default=20.0, ge=5.0, le=120.0)
+    cooldown_ignore_minutes: float = Field(default=10.0, ge=0.0, le=240.0)
+    cooldown_decline_minutes: float = Field(default=30.0, ge=0.0, le=240.0)
+
+
+class DetectionSettingsPatch(Strict):
+    enabled: bool | None = None
+    threshold_db: float | None = Field(default=None, ge=-80.0, le=-10.0)
+    min_seconds: float | None = Field(default=None, ge=1.0, le=120.0)
+    require_mic_in_use: bool | None = None
+    prompt_seconds: float | None = Field(default=None, ge=5.0, le=120.0)
+    cooldown_ignore_minutes: float | None = Field(default=None, ge=0.0, le=240.0)
+    cooldown_decline_minutes: float | None = Field(default=None, ge=0.0, le=240.0)
+
+
+class DetectionStatus(Strict):
+    phase: DetectionPhase
+    level_db: float | None = Field(description="Current output level, null if no audio source.")
+    above_threshold_seconds: float
+    mic_in_use: bool | None = Field(description="null when the OS does not expose it.")
+    mic_apps: list[str]
+    audio_source: str | None
+    error: str | None
+
+
+class PromptResponse(Strict):
+    prompt_id: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+    action: PromptAction
+
+
+class PromptResult(Strict):
+    ok: bool
+    recording_started: bool
+
+
+class MeetingDetectedData(Strict):
+    """`data` of the `meeting.detected` event."""
+
+    prompt_id: str
+    app: str
+    level_db: float
+    prompt_seconds: float
+    reminder: str = "Pense à informer les participants."
+
+
 # name -> (model, schema mode). Inputs use "validation", outputs "serialization".
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
     "TaskProposal": (TaskProposal, "validation"),
     "EvidenceRef": (EvidenceRef, "serialization"),
     "Event": (Event, "serialization"),
+    "DetectionSettings": (DetectionSettings, "serialization"),
+    "DetectionStatus": (DetectionStatus, "serialization"),
+    "MeetingDetectedData": (MeetingDetectedData, "serialization"),
 }

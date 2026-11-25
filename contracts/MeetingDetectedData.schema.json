@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/MeetingDetectedData.json",
+  "additionalProperties": false,
+  "description": "`data` of the `meeting.detected` event.",
+  "properties": {
+    "prompt_id": {
+      "title": "Prompt Id",
+      "type": "string"
+    },
+    "app": {
+      "title": "App",
+      "type": "string"
+    },
+    "level_db": {
+      "title": "Level Db",
+      "type": "number"
+    },
+    "prompt_seconds": {
+      "title": "Prompt Seconds",
+      "type": "number"
+    },
+    "reminder": {
+      "default": "Pense à informer les participants.",
+      "title": "Reminder",
+      "type": "string"
+    }
+  },
+  "required": [
+    "prompt_id",
+    "app",
+    "level_db",
+    "prompt_seconds",
+    "reminder"
+  ],
+  "title": "MeetingDetectedData",
+  "type": "object"
+}

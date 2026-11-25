@@ -2,15 +2,33 @@
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from .. import __version__
+from ..detect import DetectorService
 from ..events import EventBus
-from ..models import Column, EventType, Task, TaskCreate, TaskMove, TaskProposal, TaskUpdate
-from ..store import Database, TaskNotFound, TaskRepository
+from ..models import (
+    Column,
+    DetectionSettings,
+    DetectionSettingsPatch,
+    DetectionStatus,
+    EventType,
+    PromptResponse,
+    PromptResult,
+    Task,
+    TaskCreate,
+    TaskMove,
+    TaskProposal,
+    TaskUpdate,
+)
+from ..store import Database, SettingsRepository, TaskNotFound, TaskRepository
 from .deps import ProposeScope, ReadScope, UiScope
+from .stream import EventBroker, format_sse
 
 ALLOWED_HOSTS = {"127.0.0.1", "localhost"}
 
@@ -31,7 +49,12 @@ class LoopbackGuard(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def create_app(db: Database, master_token: str, bus: EventBus | None = None) -> FastAPI:
+def create_app(
+    db: Database,
+    master_token: str,
+    bus: EventBus | None = None,
+    detector: DetectorService | None = None,
+) -> FastAPI:
     app = FastAPI(
         title="Hark local API",
         version=__version__,
@@ -45,6 +68,9 @@ def create_app(db: Database, master_token: str, bus: EventBus | None = None) -> 
     tasks = TaskRepository(db)
     events = bus or EventBus()
     app.state.bus = events
+    detection = detector or DetectorService(SettingsRepository(db), events)
+    app.state.detector = detection
+    broker = EventBroker(events)
 
     @app.exception_handler(TaskNotFound)
     async def _not_found(_: Request, exc: TaskNotFound) -> JSONResponse:
@@ -94,6 +120,50 @@ def create_app(db: Database, master_token: str, bus: EventBus | None = None) -> 
         tasks.delete(task_id)
         events.publish(EventType.TASK_UPDATED, {"task_id": task_id, "deleted": True})
         return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    # ---- events stream (SSE) ---------------------------------------------------
+    @app.get("/v1/events/stream")
+    async def events_stream(request: Request, _: ReadScope) -> StreamingResponse:
+        queue = broker.subscribe()
+
+        async def gen() -> AsyncIterator[str]:
+            try:
+                yield ": connected\n\n"
+                while not await request.is_disconnected():
+                    try:
+                        event = await asyncio.wait_for(queue.get(), timeout=15)
+                    except TimeoutError:
+                        yield ": ping\n\n"
+                        continue
+                    yield format_sse(event)
+            finally:
+                broker.unsubscribe(queue)
+
+        return StreamingResponse(
+            gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"}
+        )
+
+    # ---- meeting detection -----------------------------------------------------
+    @app.get("/v1/detection/status", response_model=DetectionStatus)
+    def detection_status(_: ReadScope) -> DetectionStatus:
+        return detection.status()
+
+    @app.get("/v1/settings/detection", response_model=DetectionSettings)
+    def get_detection_settings(_: ReadScope) -> DetectionSettings:
+        return detection.get_settings()
+
+    @app.patch("/v1/settings/detection", response_model=DetectionSettings)
+    def patch_detection_settings(body: DetectionSettingsPatch, _: UiScope) -> DetectionSettings:
+        return detection.patch_settings(body)
+
+    @app.post("/v1/detection/respond", response_model=PromptResult)
+    def detection_respond(body: PromptResponse, _: UiScope) -> PromptResult:
+        return detection.respond(body.prompt_id, body.action)
+
+    @app.post("/v1/detection/test", status_code=status.HTTP_202_ACCEPTED)
+    def detection_test(_: UiScope) -> dict[str, bool]:
+        """Show the consent notification once, to check it works. Records nothing."""
+        return {"prompted": detection.test_prompt()}
 
     @app.get("/v1/openapi.json", include_in_schema=False)
     def openapi_doc(_: ReadScope) -> JSONResponse:

@@ -63,3 +63,29 @@ def test_propose_cannot_choose_column(client: TestClient, bus: EventBus):
         client.post("/v1/tasks/propose", json={"title": "x", "column": "done"}).status_code == 422
     )
     assert len(seen) == 1
+
+
+def test_detection_endpoints_scopes_and_validation(client: TestClient, anon: TestClient):
+    assert anon.get("/v1/detection/status").status_code == 401
+    assert client.get("/v1/detection/status").json()["phase"] == "idle"
+    s = client.patch("/v1/settings/detection", json={"min_seconds": 5, "threshold_db": -50})
+    assert s.json()["min_seconds"] == 5
+    assert client.get("/v1/settings/detection").json()["threshold_db"] == -50
+    assert client.patch("/v1/settings/detection", json={"min_seconds": 0}).status_code == 422
+    assert client.patch("/v1/settings/detection", json={"evil": 1}).status_code == 422
+    assert (
+        client.post("/v1/detection/respond", json={"prompt_id": "x", "action": "nope"}).status_code
+        == 422
+    )
+
+
+def test_test_prompt_then_respond_flow(client: TestClient, bus: EventBus):
+    seen = []
+    bus.subscribe(seen.append, {EventType.MEETING_DETECTED})
+    assert client.post("/v1/detection/test").json() == {"prompted": True}
+    assert client.post("/v1/detection/test").json() == {"prompted": False}  # one at a time
+    pid = seen[0].data["prompt_id"]
+    wrong = client.post("/v1/detection/respond", json={"prompt_id": "zzz", "action": "record"})
+    assert wrong.json()["ok"] is False
+    ok = client.post("/v1/detection/respond", json={"prompt_id": pid, "action": "decline"})
+    assert ok.json() == {"ok": True, "recording_started": False}

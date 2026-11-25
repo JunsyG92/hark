@@ -39,8 +39,12 @@ export function App() {
 
   useEffect(() => {
     void reload()
-    const off = window.hark.onShown(() => void reload())
-    return off
+    const offShown = window.hark.onShown(() => void reload())
+    const offTasks = window.hark.onTasksChanged(() => void reload())
+    return () => {
+      offShown()
+      offTasks()
+    }
   }, [reload])
 
   useEffect(() => {

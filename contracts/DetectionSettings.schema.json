@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/DetectionSettings.json",
+  "additionalProperties": false,
+  "description": "Meeting detection tuning. Detection only observes audio levels; nothing is recorded.",
+  "properties": {
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "threshold_db": {
+      "default": -45.0,
+      "description": "RMS dBFS.",
+      "maximum": -10.0,
+      "minimum": -80.0,
+      "title": "Threshold Db",
+      "type": "number"
+    },
+    "min_seconds": {
+      "default": 8.0,
+      "maximum": 120.0,
+      "minimum": 1.0,
+      "title": "Min Seconds",
+      "type": "number"
+    },
+    "require_mic_in_use": {
+      "default": true,
+      "description": "Another app must be using the microphone (call signal).",
+      "title": "Require Mic In Use",
+      "type": "boolean"
+    },
+    "prompt_seconds": {
+      "default": 20.0,
+      "maximum": 120.0,
+      "minimum": 5.0,
+      "title": "Prompt Seconds",
+      "type": "number"
+    },
+    "cooldown_ignore_minutes": {
+      "default": 10.0,
+      "maximum": 240.0,
+      "minimum": 0.0,
+      "title": "Cooldown Ignore Minutes",
+      "type": "number"
+    },
+    "cooldown_decline_minutes": {
+      "default": 30.0,
+      "maximum": 240.0,
+      "minimum": 0.0,
+      "title": "Cooldown Decline Minutes",
+      "type": "number"
+    }
+  },
+  "required": [
+    "enabled",
+    "threshold_db",
+    "min_seconds",
+    "require_mic_in_use",
+    "prompt_seconds",
+    "cooldown_ignore_minutes",
+    "cooldown_decline_minutes"
+  ],
+  "title": "DetectionSettings",
+  "type": "object"
+}

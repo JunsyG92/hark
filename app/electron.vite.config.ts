@@ -4,10 +4,27 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 
 export default defineConfig({
   main: { plugins: [externalizeDepsPlugin()] },
-  preload: { plugins: [externalizeDepsPlugin()] },
+  preload: {
+    plugins: [externalizeDepsPlugin()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/preload/index.ts'),
+          toast: resolve(__dirname, 'src/preload/toast.ts'),
+        },
+      },
+    },
+  },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
-    build: { rollupOptions: { input: resolve(__dirname, 'src/renderer/index.html') } },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/renderer/index.html'),
+          toast: resolve(__dirname, 'src/renderer/toast.html'),
+        },
+      },
+    },
     plugins: [react()],
   },
 })

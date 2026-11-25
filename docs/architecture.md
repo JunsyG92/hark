@@ -11,7 +11,9 @@
 │ api/       FastAPI, scopes ui | read | propose, garde loopback      │
 │ events.py  bus interne ─► (SSE, webhooks HMAC : étape 6)            │
 │ store/     SQLite + migrations versionnées (+ FTS5 : étape 4)       │
-│ audio/ detect/ record/ (étapes 2-3) · stt/ voices/ (4, 4b)          │
+│ audio/  niveau RMS de la sortie système (loopback, rien stocké)     │
+│ detect/ machine d'états + sondes "micro utilisé" + service (thread) │
+│ record/ (étape 3) · stt/ voices/ (4, 4b)                            │
 │ analysis/ llm/ profile/ (étape 5) · plugins/ mcp (étape 6)          │
 └─────────────────────────────────────────────────────────────────────┘
 ```

@@ -3,6 +3,11 @@
 
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "DetectionPhase".
+ */
+export type DetectionPhase = "disabled" | "idle" | "prompted" | "cooldown" | "recording";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "EventType".
  */
 export type EventType =
@@ -25,6 +30,46 @@ export type Column = "to_validate" | "todo" | "in_progress" | "done";
 export type Priority = "low" | "normal" | "high";
 
 /**
+ * Meeting detection tuning. Detection only observes audio levels; nothing is recorded.
+ *
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "DetectionSettings".
+ */
+export interface DetectionSettings {
+  enabled: boolean;
+  /**
+   * RMS dBFS.
+   */
+  threshold_db: number;
+  min_seconds: number;
+  /**
+   * Another app must be using the microphone (call signal).
+   */
+  require_mic_in_use: boolean;
+  prompt_seconds: number;
+  cooldown_ignore_minutes: number;
+  cooldown_decline_minutes: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "DetectionStatus".
+ */
+export interface DetectionStatus {
+  phase: DetectionPhase;
+  /**
+   * Current output level, null if no audio source.
+   */
+  level_db: number | null;
+  above_threshold_seconds: number;
+  /**
+   * null when the OS does not expose it.
+   */
+  mic_in_use: boolean | null;
+  mic_apps: string[];
+  audio_source: string | null;
+  error: string | null;
+}
+/**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "Event".
  */
@@ -46,6 +91,19 @@ export interface EvidenceRef {
   meeting_id: string;
   start_ms: number;
   end_ms?: number | null;
+}
+/**
+ * `data` of the `meeting.detected` event.
+ *
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "MeetingDetectedData".
+ */
+export interface MeetingDetectedData {
+  prompt_id: string;
+  app: string;
+  level_db: number;
+  prompt_seconds: number;
+  reminder: string;
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema

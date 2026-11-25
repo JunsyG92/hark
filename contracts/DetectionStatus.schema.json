@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/DetectionStatus.json",
+  "$defs": {
+    "DetectionPhase": {
+      "enum": [
+        "disabled",
+        "idle",
+        "prompted",
+        "cooldown",
+        "recording"
+      ],
+      "title": "DetectionPhase",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "phase": {
+      "$ref": "#/$defs/DetectionPhase"
+    },
+    "level_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current output level, null if no audio source.",
+      "title": "Level Db"
+    },
+    "above_threshold_seconds": {
+      "title": "Above Threshold Seconds",
+      "type": "number"
+    },
+    "mic_in_use": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "null when the OS does not expose it.",
+      "title": "Mic In Use"
+    },
+    "mic_apps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Mic Apps",
+      "type": "array"
+    },
+    "audio_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Audio Source"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error"
+    }
+  },
+  "required": [
+    "phase",
+    "level_db",
+    "above_threshold_seconds",
+    "mic_in_use",
+    "mic_apps",
+    "audio_source",
+    "error"
+  ],
+  "title": "DetectionStatus",
+  "type": "object"
+}

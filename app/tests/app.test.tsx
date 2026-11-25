@@ -23,7 +23,7 @@ function installBridge(tasks: Task[]) {
     return { status: 200, body: null }
   })
   window.hark = {
-    api, getSettings: vi.fn(), setSettings: vi.fn(), hide: vi.fn(), onShown: () => () => {}, platform: 'linux',
+    api, getSettings: vi.fn(), setSettings: vi.fn(), hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, platform: 'linux',
   } as unknown as Window['hark']
   return api
 }
@@ -54,5 +54,29 @@ describe('App', () => {
     await act(async () => render(<App />))
     fireEvent.keyDown(window, { key: 'Escape' })
     expect(window.hark.hide).toHaveBeenCalled()
+  })
+})
+
+describe('Detection settings', () => {
+  it('shows live level, mic signal, and the test button sends a prompt request', async () => {
+    const api = vi.fn(async (req: { method: string; path: string; body?: unknown }) => {
+      if (req.path === '/v1/settings/detection' && req.method === 'GET')
+        return { status: 200, body: { enabled: true, threshold_db: -45, min_seconds: 8, require_mic_in_use: true, prompt_seconds: 20, cooldown_ignore_minutes: 10, cooldown_decline_minutes: 30 } }
+      if (req.path === '/v1/detection/status')
+        return { status: 200, body: { phase: 'idle', level_db: -32.4, above_threshold_seconds: 3.5, mic_in_use: true, mic_apps: ['Teams'], audio_source: 'system-output-loopback', error: null } }
+      if (req.path === '/v1/detection/test') return { status: 202, body: { prompted: true } }
+      return { status: 200, body: [] }
+    })
+    window.hark = {
+      api, getSettings: vi.fn(async () => ({ shortcut: 'Control+Alt+K', launchAtLogin: false })), setSettings: vi.fn(),
+      hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, platform: 'linux',
+    } as unknown as Window['hark']
+    const { SettingsPanel } = await import('../src/renderer/src/components/SettingsPanel')
+    await act(async () => render(<SettingsPanel onClose={() => {}} />))
+    expect(await screen.findByText(/Niveau : -32 dB/)).toBeTruthy()
+    expect(screen.getByText(/oui \(Teams\)/)).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByText('Tester la notification')))
+    expect(api).toHaveBeenCalledWith({ method: 'POST', path: '/v1/detection/test', body: undefined })
+    expect(await screen.findByText(/Notification de test envoyée/)).toBeTruthy()
   })
 })

@@ -6,6 +6,7 @@ export interface HarkBridge {
   setSettings: (patch: { shortcut?: string; launchAtLogin?: boolean }) => Promise<{ shortcut: string; launchAtLogin: boolean }>
   hide: () => void
   onShown: (cb: () => void) => () => void
+  onTasksChanged: (cb: () => void) => () => void
   platform: string
 }
 
@@ -18,6 +19,11 @@ const bridge: HarkBridge = {
     const listener = (): void => cb()
     ipcRenderer.on('hark:shown', listener)
     return () => ipcRenderer.removeListener('hark:shown', listener)
+  },
+  onTasksChanged: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('hark:tasks-changed', listener)
+    return () => ipcRenderer.removeListener('hark:tasks-changed', listener)
   },
   platform: process.platform,
 }

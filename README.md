@@ -3,7 +3,7 @@
 Hark est une application de bureau **locale** :
 
 - un **kanban** qui s'ouvre instantanément avec `Ctrl+Alt+K` ;
-- (à venir) **détection des réunions**, puis enregistrement **uniquement après ton clic**, transcription
+- **détection des réunions** (une notification te demande ; l'enregistrement viendra à l'étape 3, **uniquement après ton clic**), transcription
   locale (faster-whisper), résumé et proposition de tâches (Ollama) dans la colonne « À valider » ;
 - un **historique** consultable et cherchable des réunions ;
 - un écosystème ouvert : **API locale**, **serveur MCP**, **webhooks**, **plugins**, et un skill
@@ -16,7 +16,7 @@ Hark est une application de bureau **locale** :
 | Étape | Contenu | État |
 |---|---|---|
 | 1 | Squelette Electron + moteur, tray, raccourci, kanban persistant | ✅ |
-| 2 | Détection audio + notification | ⏳ |
+| 2 | Détection audio + notification de consentement (sans enregistrement) | ✅ |
 | 3 | Enregistrement deux pistes + fin de réunion | ⏳ |
 | 4 | Transcription locale + historique + recherche (4b : voix → personnes) | ⏳ |
 | 5 | Analyse LLM + « À valider » + profil + budget tokens | ⏳ |
@@ -56,6 +56,18 @@ correctly », fais une fois `sudo chown root:root` puis `sudo chmod 4755` sur
 Linux : l'icône de zone de notification nécessite un support AppIndicator (sous GNOME, l'extension
 « AppIndicator and KStatusNotifierItem Support »). Sous Wayland, le raccourci global passe par le portail
 XDG ; ton bureau peut te demander de le confirmer.
+
+## Détection des réunions
+
+Hark mesure le **niveau** du son sortant du PC (jamais enregistré) et demande à enregistrer quand une
+réunion est probable : son au-dessus du seuil pendant N secondes (défaut 8) **et** une autre application
+utilise le micro (c'est ce qui distingue un appel Teams/Zoom/Meet d'une vidéo YouTube).
+La notification (Enregistrer / Non) disparaît seule après 20 s, ce qui équivaut à ignorer.
+Après « Non » ou une absence de réponse, Hark se tait pendant 30 min / 10 min.
+Réglages → « Détection des réunions » : jauge de niveau en direct, seuil, durée, bouton « Tester la notification ».
+
+Prérequis Linux : PulseAudio ou PipeWire (avec `pipewire-pulse`), la bibliothèque `libpulse`, et la commande `pactl`
+(paquet `pulseaudio-utils`). Windows : rien à installer. macOS : non pris en charge dans cette version.
 
 ## Configuration
 

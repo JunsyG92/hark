@@ -25,9 +25,13 @@ import uvicorn
 
 from . import __version__
 from .api import create_app
+from .audio.source import SoundcardLoopbackSource
 from .auth import load_or_create_master_token
 from .config import DEFAULT_PORT, LOOPBACK_HOST, Settings, default_data_dir
-from .store import Database
+from .detect import DetectorService
+from .detect.probes import default_probe
+from .events import EventBus
+from .store import Database, SettingsRepository
 
 log = logging.getLogger("hark")
 
@@ -78,7 +82,15 @@ def main(argv: list[str] | None = None) -> None:
     settings.ensure_dirs()
     token = load_or_create_master_token(settings.data_dir)
     db = Database(settings.db_path)
-    app = create_app(db, token)
+    bus = EventBus()
+    detector = DetectorService(
+        SettingsRepository(db),
+        bus,
+        source=SoundcardLoopbackSource() if os.environ.get("HARK_DETECT") != "0" else None,
+        probe=default_probe(),
+    )
+    app = create_app(db, token, bus, detector)
+    detector.start()
 
     settings.runtime_file.write_text(
         json.dumps({"host": LOOPBACK_HOST, "port": port, "pid": os.getpid()}), encoding="utf-8"
@@ -105,6 +117,7 @@ def main(argv: list[str] | None = None) -> None:
     try:
         server.run()
     finally:
+        detector.stop()
         db.close()
         settings.runtime_file.unlink(missing_ok=True)
 

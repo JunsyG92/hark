@@ -367,6 +367,185 @@
           }
         }
       }
+    },
+    "/v1/events/stream": {
+      "get": {
+        "summary": "Events Stream",
+        "operationId": "events_stream_v1_events_stream_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/detection/status": {
+      "get": {
+        "summary": "Detection Status",
+        "operationId": "detection_status_v1_detection_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/detection": {
+      "get": {
+        "summary": "Get Detection Settings",
+        "operationId": "get_detection_settings_v1_settings_detection_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionSettings"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Detection Settings",
+        "operationId": "patch_detection_settings_v1_settings_detection_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectionSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DetectionSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/detection/respond": {
+      "post": {
+        "summary": "Detection Respond",
+        "operationId": "detection_respond_v1_detection_respond_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PromptResponse"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/detection/test": {
+      "post": {
+        "summary": "Detection Test",
+        "description": "Show the consent notification once, to check it works. Records nothing.",
+        "operationId": "detection_test_v1_detection_test_post",
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Detection Test V1 Detection Test Post"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -380,6 +559,251 @@
           "done"
         ],
         "title": "Column"
+      },
+      "DetectionPhase": {
+        "type": "string",
+        "enum": [
+          "disabled",
+          "idle",
+          "prompted",
+          "cooldown",
+          "recording"
+        ],
+        "title": "DetectionPhase"
+      },
+      "DetectionSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "threshold_db": {
+            "type": "number",
+            "maximum": -10.0,
+            "minimum": -80.0,
+            "title": "Threshold Db",
+            "description": "RMS dBFS.",
+            "default": -45.0
+          },
+          "min_seconds": {
+            "type": "number",
+            "maximum": 120.0,
+            "minimum": 1.0,
+            "title": "Min Seconds",
+            "default": 8.0
+          },
+          "require_mic_in_use": {
+            "type": "boolean",
+            "title": "Require Mic In Use",
+            "description": "Another app must be using the microphone (call signal).",
+            "default": true
+          },
+          "prompt_seconds": {
+            "type": "number",
+            "maximum": 120.0,
+            "minimum": 5.0,
+            "title": "Prompt Seconds",
+            "default": 20.0
+          },
+          "cooldown_ignore_minutes": {
+            "type": "number",
+            "maximum": 240.0,
+            "minimum": 0.0,
+            "title": "Cooldown Ignore Minutes",
+            "default": 10.0
+          },
+          "cooldown_decline_minutes": {
+            "type": "number",
+            "maximum": 240.0,
+            "minimum": 0.0,
+            "title": "Cooldown Decline Minutes",
+            "default": 30.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "threshold_db",
+          "min_seconds",
+          "require_mic_in_use",
+          "prompt_seconds",
+          "cooldown_ignore_minutes",
+          "cooldown_decline_minutes"
+        ],
+        "title": "DetectionSettings",
+        "description": "Meeting detection tuning. Detection only observes audio levels; nothing is recorded."
+      },
+      "DetectionSettingsPatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "threshold_db": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": -10.0,
+                "minimum": -80.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Threshold Db"
+          },
+          "min_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 120.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Seconds"
+          },
+          "require_mic_in_use": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Require Mic In Use"
+          },
+          "prompt_seconds": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 120.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Seconds"
+          },
+          "cooldown_ignore_minutes": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 240.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooldown Ignore Minutes"
+          },
+          "cooldown_decline_minutes": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 240.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cooldown Decline Minutes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "DetectionSettingsPatch"
+      },
+      "DetectionStatus": {
+        "properties": {
+          "phase": {
+            "$ref": "#/components/schemas/DetectionPhase"
+          },
+          "level_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level Db",
+            "description": "Current output level, null if no audio source."
+          },
+          "above_threshold_seconds": {
+            "type": "number",
+            "title": "Above Threshold Seconds"
+          },
+          "mic_in_use": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mic In Use",
+            "description": "null when the OS does not expose it."
+          },
+          "mic_apps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mic Apps"
+          },
+          "audio_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Source"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "phase",
+          "level_db",
+          "above_threshold_seconds",
+          "mic_in_use",
+          "mic_apps",
+          "audio_source",
+          "error"
+        ],
+        "title": "DetectionStatus"
       },
       "EvidenceRef-Input": {
         "properties": {
@@ -473,6 +897,54 @@
           "high"
         ],
         "title": "Priority"
+      },
+      "PromptAction": {
+        "type": "string",
+        "enum": [
+          "record",
+          "decline",
+          "ignore"
+        ],
+        "title": "PromptAction"
+      },
+      "PromptResponse": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Prompt Id"
+          },
+          "action": {
+            "$ref": "#/components/schemas/PromptAction"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "action"
+        ],
+        "title": "PromptResponse"
+      },
+      "PromptResult": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "recording_started": {
+            "type": "boolean",
+            "title": "Recording Started"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "ok",
+          "recording_started"
+        ],
+        "title": "PromptResult"
       },
       "Task": {
         "properties": {

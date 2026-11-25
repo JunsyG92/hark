@@ -1,6 +1,6 @@
-import type { Column, Priority, Task } from './contracts.gen'
+import type { Column, DetectionSettings, DetectionStatus, Priority, Task } from './contracts.gen'
 
-export type { Column, Priority, Task }
+export type { Column, DetectionSettings, DetectionStatus, Priority, Task }
 
 export interface TaskDraft {
   title: string
@@ -36,6 +36,11 @@ export function createApi(transport: Transport) {
     updateTask: (id: string, patch: TaskPatch) => call<Task>('PATCH', `/v1/tasks/${encodeURIComponent(id)}`, patch),
     moveTask: (id: string, column: Column, index: number) =>
       call<Task>('POST', `/v1/tasks/${encodeURIComponent(id)}/move`, { column, index }),
+    detectionStatus: () => call<DetectionStatus>('GET', '/v1/detection/status'),
+    detectionSettings: () => call<DetectionSettings>('GET', '/v1/settings/detection'),
+    patchDetectionSettings: (patch: Partial<DetectionSettings>) =>
+      call<DetectionSettings>('PATCH', '/v1/settings/detection', patch),
+    testDetectionPrompt: () => call<{ prompted: boolean }>('POST', '/v1/detection/test'),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
 }

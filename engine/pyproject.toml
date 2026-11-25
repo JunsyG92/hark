@@ -10,6 +10,8 @@ dependencies = [
   "keyring>=25",
   "platformdirs>=4",
   "pyyaml>=6",
+  "soundcard>=0.4.6",
+  "numpy>=2.4.6",
 ]
 
 [project.scripts]
@@ -42,5 +44,11 @@ testpaths = ["tests"]
 
 [tool.mypy]
 strict = true
+platform = "win32"
+
 packages = ["hark_engine"]
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["soundcard"]
+ignore_missing_imports = true
