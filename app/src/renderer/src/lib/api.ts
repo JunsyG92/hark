@@ -1,6 +1,15 @@
-import type { Column, DetectionSettings, DetectionStatus, Priority, Task } from './contracts.gen'
+import type {
+  Column,
+  DetectionSettings,
+  DetectionStatus,
+  Meeting,
+  Priority,
+  RecordingSettings,
+  RecordingStatus,
+  Task,
+} from './contracts.gen'
 
-export type { Column, DetectionSettings, DetectionStatus, Priority, Task }
+export type { Column, DetectionSettings, DetectionStatus, Meeting, Priority, RecordingSettings, RecordingStatus, Task }
 
 export interface TaskDraft {
   title: string
@@ -41,6 +50,12 @@ export function createApi(transport: Transport) {
     patchDetectionSettings: (patch: Partial<DetectionSettings>) =>
       call<DetectionSettings>('PATCH', '/v1/settings/detection', patch),
     testDetectionPrompt: () => call<{ prompted: boolean }>('POST', '/v1/detection/test'),
+    recordingStatus: () => call<RecordingStatus>('GET', '/v1/recording/status'),
+    startRecording: (title = '') => call<Meeting>('POST', '/v1/recording/start', { title }),
+    stopRecording: () => call<Meeting>('POST', '/v1/recording/stop'),
+    recordingSettings: () => call<RecordingSettings>('GET', '/v1/settings/recording'),
+    patchRecordingSettings: (patch: Partial<RecordingSettings>) =>
+      call<RecordingSettings>('PATCH', '/v1/settings/recording', patch),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
 }

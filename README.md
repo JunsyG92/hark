@@ -17,7 +17,7 @@ Hark est une application de bureau **locale** :
 |---|---|---|
 | 1 | Squelette Electron + moteur, tray, raccourci, kanban persistant | ✅ |
 | 2 | Détection audio + notification de consentement (sans enregistrement) | ✅ |
-| 3 | Enregistrement deux pistes + fin de réunion | ⏳ |
+| 3 | Enregistrement deux pistes + fin de réunion | ✅ |
 | 4 | Transcription locale + historique + recherche (4b : voix → personnes) | ⏳ |
 | 5 | Analyse LLM + « À valider » + profil + budget tokens | ⏳ |
 | 6 | API locale complète + webhooks + MCP + plugin d'exemple | ⏳ |
@@ -68,6 +68,18 @@ Réglages → « Détection des réunions » : jauge de niveau en direct, seuil,
 
 Prérequis Linux : PulseAudio ou PipeWire (avec `pipewire-pulse`), la bibliothèque `libpulse`, et la commande `pactl`
 (paquet `pulseaudio-utils`). Windows : rien à installer. macOS : non pris en charge dans cette version.
+
+## Enregistrement
+
+Il ne démarre **que sur ton clic** : « Enregistrer » dans la notification, « ● Enregistrer » dans le kanban, ou
+« Démarrer un enregistrement » dans le menu de l'icône. Pendant l'enregistrement : icône rouge dans la zone de
+notification, petite fenêtre « REC » toujours au premier plan (durée, titre facultatif, **■ Stop**), et un bouton Stop
+dans le kanban. Deux pistes WAV 16 kHz sont écrites dans le dossier de données (`audio/<id>/system.wav` = les autres,
+`mic.wav` = toi) ; si le micro est introuvable, la piste système est enregistrée seule, avec un avertissement.
+
+Après 3 min de silence (réglable) sur les deux pistes, « Réunion terminée ? » s'affiche et **reste** jusqu'à ce que
+quelqu'un reparle (elle disparaît alors) ou que tu choisisses Arrêter / Continuer. Hark ne s'arrête jamais seul.
+Si tu quittes Hark ou si l'ordinateur plante pendant un enregistrement, ce qui était déjà écrit est conservé.
 
 ## Configuration
 

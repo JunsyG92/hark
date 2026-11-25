@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/RecordingStatus.json",
+  "$defs": {
+    "TrackKind": {
+      "enum": [
+        "system",
+        "mic"
+      ],
+      "title": "TrackKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "recording": {
+      "title": "Recording",
+      "type": "boolean"
+    },
+    "meeting_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Meeting Id"
+    },
+    "title": {
+      "title": "Title",
+      "type": "string"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Started At"
+    },
+    "elapsed_s": {
+      "title": "Elapsed S",
+      "type": "number"
+    },
+    "tracks": {
+      "items": {
+        "$ref": "#/$defs/TrackKind"
+      },
+      "title": "Tracks",
+      "type": "array"
+    },
+    "system_level_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "System Level Db"
+    },
+    "mic_level_db": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Mic Level Db"
+    },
+    "silent_seconds": {
+      "title": "Silent Seconds",
+      "type": "number"
+    },
+    "silence_prompted": {
+      "title": "Silence Prompted",
+      "type": "boolean"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "recording",
+    "meeting_id",
+    "title",
+    "started_at",
+    "elapsed_s",
+    "tracks",
+    "system_level_db",
+    "mic_level_db",
+    "silent_seconds",
+    "silence_prompted",
+    "warnings"
+  ],
+  "title": "RecordingStatus",
+  "type": "object"
+}

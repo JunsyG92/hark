@@ -109,12 +109,20 @@ export class Engine {
     })
   }
 
-  stop(): void {
+  /**
+   * Ask the sidecar to exit (it finalizes any recording first) and wait for it, up to `timeoutMs`.
+   */
+  stop(timeoutMs = 8000): Promise<void> {
     this.stopping = true
-    if (this.child) {
-      this.child.stdin?.end() // sidecar exits when stdin closes
-      const c = this.child
-      setTimeout(() => c.exitCode === null && c.kill(), 2000)
-    }
+    const child = this.child
+    if (!child || child.exitCode !== null) return Promise.resolve()
+    return new Promise((resolve) => {
+      const kill = setTimeout(() => child.kill(), timeoutMs)
+      child.once('exit', () => {
+        clearTimeout(kill)
+        resolve()
+      })
+      child.stdin?.end() // sidecar exits when stdin closes
+    })
   }
 }

@@ -17,7 +17,18 @@ export type EventType =
   | "transcript.ready"
   | "analysis.ready"
   | "task.proposed"
-  | "task.updated";
+  | "task.updated"
+  | "meeting.silence";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "MeetingStatus".
+ */
+export type MeetingStatus = "recording" | "recorded" | "failed";
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TrackKind".
+ */
+export type TrackKind = "system" | "mic";
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "Column".
@@ -93,6 +104,24 @@ export interface EvidenceRef {
   end_ms?: number | null;
 }
 /**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Meeting".
+ */
+export interface Meeting {
+  id: string;
+  title: string;
+  status: MeetingStatus;
+  app: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_ms: number | null;
+  tracks: TrackKind[];
+  /**
+   * Audio files still on disk (see retention).
+   */
+  audio_available: boolean;
+}
+/**
  * `data` of the `meeting.detected` event.
  *
  * This interface was referenced by `HarkContracts`'s JSON-Schema
@@ -104,6 +133,31 @@ export interface MeetingDetectedData {
   level_db: number;
   prompt_seconds: number;
   reminder: string;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "RecordingSettings".
+ */
+export interface RecordingSettings {
+  silence_minutes: number;
+  silence_threshold_db: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "RecordingStatus".
+ */
+export interface RecordingStatus {
+  recording: boolean;
+  meeting_id: string | null;
+  title: string;
+  started_at: string | null;
+  elapsed_s: number;
+  tracks: TrackKind[];
+  system_level_db: number | null;
+  mic_level_db: number | null;
+  silent_seconds: number;
+  silence_prompted: boolean;
+  warnings: string[];
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema

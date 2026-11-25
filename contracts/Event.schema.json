@@ -10,7 +10,8 @@
         "transcript.ready",
         "analysis.ready",
         "task.proposed",
-        "task.updated"
+        "task.updated",
+        "meeting.silence"
       ],
       "title": "EventType",
       "type": "string"

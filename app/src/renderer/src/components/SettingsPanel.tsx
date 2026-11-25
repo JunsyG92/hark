@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { DetectionSection } from './DetectionSettings'
+import { RecordingSection } from './RecordingSection'
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [shortcut, setShortcut] = useState('')
@@ -36,6 +37,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </label>
         {message && <p className="modal__source">{message}</p>}
         <DetectionSection />
+        <RecordingSection />
         <div className="modal__actions">
           <span className="spacer" />
           <button className="btn btn--ghost" onClick={onClose}>

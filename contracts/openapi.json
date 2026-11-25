@@ -546,6 +546,315 @@
           }
         ]
       }
+    },
+    "/v1/meetings": {
+      "get": {
+        "summary": "List Meetings",
+        "operationId": "list_meetings_v1_meetings_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Meeting"
+                  },
+                  "title": "Response List Meetings V1 Meetings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/meetings/{meeting_id}": {
+      "get": {
+        "summary": "Get Meeting",
+        "operationId": "get_meeting_v1_meetings__meeting_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meeting"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Rename Meeting",
+        "operationId": "rename_meeting_v1_meetings__meeting_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeetingTitleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meeting"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/recording/status": {
+      "get": {
+        "summary": "Recording Status",
+        "operationId": "recording_status_v1_recording_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/recording/start": {
+      "post": {
+        "summary": "Recording Start",
+        "description": "Explicit user action only (ui scope): integrations can never start a recording.",
+        "operationId": "recording_start_v1_recording_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meeting"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/recording/stop": {
+      "post": {
+        "summary": "Recording Stop",
+        "operationId": "recording_stop_v1_recording_stop_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meeting"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/settings/recording": {
+      "get": {
+        "summary": "Get Recording Settings",
+        "operationId": "get_recording_settings_v1_settings_recording_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingSettings"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Recording Settings",
+        "operationId": "patch_recording_settings_v1_settings_recording_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordingSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordingSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -889,6 +1198,107 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "Meeting": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": ""
+          },
+          "status": {
+            "$ref": "#/components/schemas/MeetingStatus"
+          },
+          "app": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "App",
+            "default": ""
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/TrackKind"
+            },
+            "type": "array",
+            "title": "Tracks"
+          },
+          "audio_available": {
+            "type": "boolean",
+            "title": "Audio Available",
+            "description": "Audio files still on disk (see retention)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "status",
+          "app",
+          "started_at",
+          "ended_at",
+          "duration_ms",
+          "tracks",
+          "audio_available"
+        ],
+        "title": "Meeting"
+      },
+      "MeetingStatus": {
+        "type": "string",
+        "enum": [
+          "recording",
+          "recorded",
+          "failed"
+        ],
+        "title": "MeetingStatus"
+      },
+      "MeetingTitleUpdate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "MeetingTitleUpdate"
+      },
       "Priority": {
         "type": "string",
         "enum": [
@@ -936,15 +1346,197 @@
           "recording_started": {
             "type": "boolean",
             "title": "Recording Started"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
           "ok",
-          "recording_started"
+          "recording_started",
+          "error"
         ],
         "title": "PromptResult"
+      },
+      "RecordingSettings": {
+        "properties": {
+          "silence_minutes": {
+            "type": "number",
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Silence Minutes",
+            "default": 3.0
+          },
+          "silence_threshold_db": {
+            "type": "number",
+            "maximum": -10.0,
+            "minimum": -80.0,
+            "title": "Silence Threshold Db",
+            "default": -45.0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "silence_minutes",
+          "silence_threshold_db"
+        ],
+        "title": "RecordingSettings"
+      },
+      "RecordingSettingsPatch": {
+        "properties": {
+          "silence_minutes": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 30.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Silence Minutes"
+          },
+          "silence_threshold_db": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": -10.0,
+                "minimum": -80.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Silence Threshold Db"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RecordingSettingsPatch"
+      },
+      "RecordingStart": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Title",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "RecordingStart"
+      },
+      "RecordingStatus": {
+        "properties": {
+          "recording": {
+            "type": "boolean",
+            "title": "Recording"
+          },
+          "meeting_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "elapsed_s": {
+            "type": "number",
+            "title": "Elapsed S"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/TrackKind"
+            },
+            "type": "array",
+            "title": "Tracks"
+          },
+          "system_level_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Level Db"
+          },
+          "mic_level_db": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mic Level Db"
+          },
+          "silent_seconds": {
+            "type": "number",
+            "title": "Silent Seconds"
+          },
+          "silence_prompted": {
+            "type": "boolean",
+            "title": "Silence Prompted"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "recording",
+          "meeting_id",
+          "title",
+          "started_at",
+          "elapsed_s",
+          "tracks",
+          "system_level_db",
+          "mic_level_db",
+          "silent_seconds",
+          "silence_prompted",
+          "warnings"
+        ],
+        "title": "RecordingStatus"
       },
       "Task": {
         "properties": {
@@ -1273,6 +1865,14 @@
         "additionalProperties": false,
         "type": "object",
         "title": "TaskUpdate"
+      },
+      "TrackKind": {
+        "type": "string",
+        "enum": [
+          "system",
+          "mic"
+        ],
+        "title": "TrackKind"
       },
       "ValidationError": {
         "properties": {

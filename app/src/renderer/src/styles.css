@@ -90,3 +90,11 @@ input:focus, textarea:focus, select:focus { outline: none; border-color: var(--a
 .meter__bar { position: relative; height: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
 .meter__fill { height: 100%; background: var(--accent); transition: width 0.25s linear; }
 .meter__threshold { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); }
+.recbar { display: flex; align-items: center; gap: 8px; }
+.recbar--on { color: var(--danger); }
+.recbar__dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); animation: pulse 1.4s ease-in-out infinite; }
+.recbar__time { font-variant-numeric: tabular-nums; color: var(--text); }
+.recbar__hint { font-size: 12px; color: var(--muted); }
+.recbar__warn { cursor: help; }
+.recbar__stop { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 600; }
+@keyframes pulse { 50% { opacity: 0.35; } }

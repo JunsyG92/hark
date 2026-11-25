@@ -14,6 +14,7 @@ function fakeTask(over: Partial<Task>): Task {
 
 function installBridge(tasks: Task[]) {
   const api = vi.fn(async (req: { method: string; path: string; body?: unknown }) => {
+    if (req.path === '/v1/recording/status') return { status: 200, body: { recording: false, meeting_id: null, title: '', started_at: null, elapsed_s: 0, tracks: [], system_level_db: null, mic_level_db: null, silent_seconds: 0, silence_prompted: false, warnings: [] } }
     if (req.method === 'GET') return { status: 200, body: tasks }
     if (req.method === 'POST' && req.path === '/v1/tasks') {
       const t = fakeTask({ id: 'new', title: (req.body as { title: string }).title, column: 'todo', is_mine: false, source: 'manual' })
@@ -23,7 +24,7 @@ function installBridge(tasks: Task[]) {
     return { status: 200, body: null }
   })
   window.hark = {
-    api, getSettings: vi.fn(), setSettings: vi.fn(), hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, platform: 'linux',
+    api, getSettings: vi.fn(), setSettings: vi.fn(), hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, onRecordingChanged: () => () => {}, platform: 'linux',
   } as unknown as Window['hark']
   return api
 }
@@ -64,12 +65,14 @@ describe('Detection settings', () => {
         return { status: 200, body: { enabled: true, threshold_db: -45, min_seconds: 8, require_mic_in_use: true, prompt_seconds: 20, cooldown_ignore_minutes: 10, cooldown_decline_minutes: 30 } }
       if (req.path === '/v1/detection/status')
         return { status: 200, body: { phase: 'idle', level_db: -32.4, above_threshold_seconds: 3.5, mic_in_use: true, mic_apps: ['Teams'], audio_source: 'system-output-loopback', error: null } }
+      if (req.path === '/v1/settings/recording') return { status: 200, body: { silence_minutes: 3, silence_threshold_db: -45 } }
+      if (req.path === '/v1/recording/status') return { status: 200, body: { recording: false, meeting_id: null, title: '', started_at: null, elapsed_s: 0, tracks: [], system_level_db: null, mic_level_db: null, silent_seconds: 0, silence_prompted: false, warnings: [] } }
       if (req.path === '/v1/detection/test') return { status: 202, body: { prompted: true } }
       return { status: 200, body: [] }
     })
     window.hark = {
       api, getSettings: vi.fn(async () => ({ shortcut: 'Control+Alt+K', launchAtLogin: false })), setSettings: vi.fn(),
-      hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, platform: 'linux',
+      hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, onRecordingChanged: () => () => {}, platform: 'linux',
     } as unknown as Window['hark']
     const { SettingsPanel } = await import('../src/renderer/src/components/SettingsPanel')
     await act(async () => render(<SettingsPanel onClose={() => {}} />))

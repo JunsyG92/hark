@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>Hark</title>
+  </head>
+  <body>
+    <main id="ov" aria-label="Enregistrement en cours">
+      <div class="row drag">
+        <span class="dot" aria-hidden="true"></span>
+        <strong>REC</strong>
+        <span id="o-time" aria-live="off">00:00</span>
+        <span class="spacer"></span>
+        <button id="o-stop" class="stop" title="Arrêter l'enregistrement">■ Stop</button>
+      </div>
+      <input id="o-title" maxlength="200" placeholder="Titre de la réunion (optionnel)" aria-label="Titre de la réunion" />
+    </main>
+    <script type="module" src="./src/overlay.ts"></script>
+  </body>
+</html>

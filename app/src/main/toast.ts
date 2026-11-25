@@ -1,6 +1,6 @@
 import { BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
-import type { DetectedPrompt } from './detection'
+import type { ToastKind, ToastPayload } from './detection'
 
 const WIDTH = 380
 const HEIGHT = 178
@@ -13,6 +13,7 @@ const MARGIN = 16
 export class ToastWindow {
   private win: BrowserWindow | null = null
   private ready = false
+  private current: { kind: ToastKind; promptId: string } | null = null
 
   create(): void {
     const win = new BrowserWindow({
@@ -57,9 +58,15 @@ export class ToastWindow {
     return this.win?.webContents
   }
 
-  show(prompt: DetectedPrompt): void {
+  /** The prompt currently on screen (answers to anything else are ignored). */
+  get shown(): { kind: ToastKind; promptId: string } | null {
+    return this.current
+  }
+
+  show(prompt: ToastPayload): void {
     const win = this.win
     if (!win) return
+    this.current = { kind: prompt.kind, promptId: prompt.promptId }
     const send = (): void => {
       const area = screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea
       win.setPosition(area.x + area.width - WIDTH - MARGIN, area.y + area.height - HEIGHT - MARGIN)
@@ -71,7 +78,12 @@ export class ToastWindow {
   }
 
   hide(): void {
+    this.current = null
     this.win?.hide()
+  }
+
+  hideIfKind(kind: ToastKind): void {
+    if (this.current?.kind === kind) this.hide()
   }
 
   destroy(): void {

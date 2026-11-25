@@ -7,6 +7,7 @@ export interface HarkBridge {
   hide: () => void
   onShown: (cb: () => void) => () => void
   onTasksChanged: (cb: () => void) => () => void
+  onRecordingChanged: (cb: () => void) => () => void
   platform: string
 }
 
@@ -24,6 +25,11 @@ const bridge: HarkBridge = {
     const listener = (): void => cb()
     ipcRenderer.on('hark:tasks-changed', listener)
     return () => ipcRenderer.removeListener('hark:tasks-changed', listener)
+  },
+  onRecordingChanged: (cb) => {
+    const listener = (): void => cb()
+    ipcRenderer.on('hark:recording-changed', listener)
+    return () => ipcRenderer.removeListener('hark:recording-changed', listener)
   },
   platform: process.platform,
 }

@@ -13,6 +13,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ColumnView } from './components/ColumnView'
+import { RecordingBar } from './components/RecordingBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { TaskCard } from './components/TaskCard'
 import { TaskEditor } from './components/TaskEditor'
@@ -111,6 +112,7 @@ export function App() {
         <h1>Hark</h1>
         <span className="topbar__hint">Échap pour masquer · N pour une nouvelle tâche</span>
         <span className="spacer" />
+        <RecordingBar api={api} onError={setError} />
         <button className="btn btn--ghost" onClick={() => setShowSettings(true)}>
           Réglages
         </button>

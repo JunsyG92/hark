@@ -15,23 +15,26 @@ import argparse
 import json
 import logging
 import os
-import signal
 import socket
 import sys
 import threading
+from collections.abc import Callable
 from pathlib import Path
 
 import uvicorn
 
 from . import __version__
 from .api import create_app
+from .audio.capture import FrameSource, SoundcardFrameSource, SyntheticFrameSource
 from .audio.source import SoundcardLoopbackSource
 from .auth import load_or_create_master_token
 from .config import DEFAULT_PORT, LOOPBACK_HOST, Settings, default_data_dir
 from .detect import DetectorService
 from .detect.probes import default_probe
 from .events import EventBus
-from .store import Database, SettingsRepository
+from .models import TrackKind
+from .record import Recorder
+from .store import Database, MeetingRepository, SettingsRepository
 
 log = logging.getLogger("hark")
 
@@ -53,15 +56,15 @@ def _pick_port(preferred: int) -> int:
         return int(s.getsockname()[1])
 
 
-def _watch_parent_stdin() -> None:
-    """Exit when the parent (desktop app) closes our stdin, i.e. it died."""
+def _watch_parent_stdin(on_eof: Callable[[], None]) -> None:
+    """Shut down gracefully when the parent (desktop app) closes our stdin, i.e. it quit or died."""
 
     def run() -> None:
         try:
             while sys.stdin.read(1):
                 pass
         finally:
-            os.kill(os.getpid(), signal.SIGTERM)
+            on_eof()
 
     threading.Thread(target=run, daemon=True, name="parent-watch").start()
 
@@ -89,7 +92,19 @@ def main(argv: list[str] | None = None) -> None:
         source=SoundcardLoopbackSource() if os.environ.get("HARK_DETECT") != "0" else None,
         probe=default_probe(),
     )
-    app = create_app(db, token, bus, detector)
+    frame_cls = (
+        SyntheticFrameSource if os.environ.get("HARK_FAKE_AUDIO") == "1" else SoundcardFrameSource
+    )
+    sources: dict[TrackKind, FrameSource] = {
+        k: frame_cls(k) for k in (TrackKind.SYSTEM, TrackKind.MIC)
+    }
+    recorder = Recorder(
+        MeetingRepository(db), SettingsRepository(db), bus, settings.audio_dir, sources
+    )
+    recovered = recorder.recover_interrupted()
+    if recovered:
+        log.warning("closed %d meeting(s) left open by a previous crash", recovered)
+    app = create_app(db, token, bus, detector, recorder)
     detector.start()
 
     settings.runtime_file.write_text(
@@ -113,10 +128,11 @@ def main(argv: list[str] | None = None) -> None:
 
     server.startup = startup_with_handshake  # type: ignore[method-assign]
     if args.sidecar:
-        _watch_parent_stdin()
+        _watch_parent_stdin(lambda: setattr(server, "should_exit", True))
     try:
         server.run()
     finally:
+        recorder.stop()  # no-op if the API lifespan already finalized it
         detector.stop()
         db.close()
         settings.runtime_file.unlink(missing_ok=True)

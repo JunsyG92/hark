@@ -109,6 +109,8 @@ class EventType(StrEnum):
     ANALYSIS_READY = "analysis.ready"
     TASK_PROPOSED = "task.proposed"
     TASK_UPDATED = "task.updated"
+    # Extra (not in the original list): recording went silent / a voice came back.
+    MEETING_SILENCE = "meeting.silence"
 
 
 class Event(Strict):
@@ -174,6 +176,7 @@ class PromptResponse(Strict):
 class PromptResult(Strict):
     ok: bool
     recording_started: bool
+    error: str | None = None
 
 
 class MeetingDetectedData(Strict):
@@ -186,6 +189,61 @@ class MeetingDetectedData(Strict):
     reminder: str = "Pense à informer les participants."
 
 
+class MeetingStatus(StrEnum):
+    RECORDING = "recording"
+    RECORDED = "recorded"
+    FAILED = "failed"
+
+
+class TrackKind(StrEnum):
+    SYSTEM = "system"  # what the other participants say (system output loopback)
+    MIC = "mic"  # me
+
+
+class Meeting(Strict):
+    id: str
+    title: ShortText = ""
+    status: MeetingStatus
+    app: ShortText = ""
+    started_at: datetime
+    ended_at: datetime | None = None
+    duration_ms: int | None = None
+    tracks: list[TrackKind]
+    audio_available: bool = Field(description="Audio files still on disk (see retention).")
+
+
+class RecordingStart(Strict):
+    title: ShortText = ""
+
+
+class MeetingTitleUpdate(Strict):
+    title: ShortText
+
+
+class RecordingSettings(Strict):
+    silence_minutes: float = Field(default=3.0, ge=1.0, le=30.0)
+    silence_threshold_db: float = Field(default=-45.0, ge=-80.0, le=-10.0)
+
+
+class RecordingSettingsPatch(Strict):
+    silence_minutes: float | None = Field(default=None, ge=1.0, le=30.0)
+    silence_threshold_db: float | None = Field(default=None, ge=-80.0, le=-10.0)
+
+
+class RecordingStatus(Strict):
+    recording: bool
+    meeting_id: str | None
+    title: str
+    started_at: datetime | None
+    elapsed_s: float
+    tracks: list[TrackKind]
+    system_level_db: float | None
+    mic_level_db: float | None
+    silent_seconds: float
+    silence_prompted: bool
+    warnings: list[str]
+
+
 # name -> (model, schema mode). Inputs use "validation", outputs "serialization".
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
@@ -195,4 +253,7 @@ CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "seriali
     "DetectionSettings": (DetectionSettings, "serialization"),
     "DetectionStatus": (DetectionStatus, "serialization"),
     "MeetingDetectedData": (MeetingDetectedData, "serialization"),
+    "Meeting": (Meeting, "serialization"),
+    "RecordingSettings": (RecordingSettings, "serialization"),
+    "RecordingStatus": (RecordingStatus, "serialization"),
 }

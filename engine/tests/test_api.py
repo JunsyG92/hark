@@ -88,4 +88,58 @@ def test_test_prompt_then_respond_flow(client: TestClient, bus: EventBus):
     wrong = client.post("/v1/detection/respond", json={"prompt_id": "zzz", "action": "record"})
     assert wrong.json()["ok"] is False
     ok = client.post("/v1/detection/respond", json={"prompt_id": pid, "action": "decline"})
-    assert ok.json() == {"ok": True, "recording_started": False}
+    assert ok.json() == {"ok": True, "recording_started": False, "error": None}
+
+
+def test_recording_endpoints_scopes_and_errors(client: TestClient, anon: TestClient):
+    assert anon.get("/v1/recording/status").status_code == 401
+    assert anon.post("/v1/recording/start", json={}).status_code == 401
+    assert client.get("/v1/recording/status").json()["recording"] is False
+    # no audio device in the default test app: explicit, readable error (nothing recorded)
+    r = client.post("/v1/recording/start", json={"title": "x"})
+    assert r.status_code == 503 and "audio" in r.json()["detail"]
+    assert client.post("/v1/recording/stop").status_code == 409
+    assert client.post("/v1/recording/start", json={"evil": 1}).status_code == 422
+    assert client.get("/v1/meetings").json() == []
+    assert client.get("/v1/meetings/unknown").status_code == 404
+    assert client.patch("/v1/meetings/unknown", json={"title": "t"}).status_code == 404
+    assert client.patch("/v1/settings/recording", json={"silence_minutes": 0}).status_code == 422
+    assert (
+        client.patch("/v1/settings/recording", json={"silence_minutes": 5}).json()[
+            "silence_minutes"
+        ]
+        == 5
+    )
+    assert client.get("/v1/settings/recording").json()["silence_minutes"] == 5
+
+
+def test_accepting_the_prompt_starts_recording_with_fake_audio(db, bus, tmp_path):
+    from hark_engine.api import create_app
+    from hark_engine.record import Recorder
+    from hark_engine.store import MeetingRepository, SettingsRepository
+    from tests.test_recorder import FakeSource, TrackKind  # noqa: PLC0415
+
+    rec = Recorder(
+        MeetingRepository(db),
+        SettingsRepository(db),
+        bus,
+        tmp_path,
+        {TrackKind.SYSTEM: FakeSource(3)},
+    )
+    c = TestClient(
+        create_app(db, "tok", bus, recorder=rec), headers={"Authorization": "Bearer tok"}
+    )
+    seen = []
+    bus.subscribe(seen.append, {EventType.MEETING_DETECTED})
+    c.post("/v1/detection/test")
+    pid = seen[0].data["prompt_id"]
+    result = c.post("/v1/detection/respond", json={"prompt_id": pid, "action": "record"}).json()
+    assert result == {"ok": True, "recording_started": True, "error": None}
+    assert c.get("/v1/detection/status").json()["phase"] == "recording"
+    assert c.get("/v1/recording/status").json()["recording"] is True
+    stopped = c.post("/v1/recording/stop").json()
+    assert stopped["status"] == "recorded"
+    assert c.get("/v1/detection/status").json()["phase"] == "cooldown"  # no immediate re-prompt
+    assert (
+        c.patch(f"/v1/meetings/{stopped['id']}", json={"title": "Revue"}).json()["title"] == "Revue"
+    )

@@ -3,6 +3,8 @@ import { join } from 'node:path'
 
 export interface TrayActions {
   openKanban: () => void
+  startRecording: () => void
+  stopRecording: () => void
   toggleLaunchAtLogin: (enabled: boolean) => void
   quit: () => void
 }
@@ -50,7 +52,9 @@ export class AppTray {
           click: (item) => this.actions.toggleLaunchAtLogin(item.checked),
         },
         { type: 'separator' },
-        { label: this.state === 'recording' ? '● Enregistrement…' : 'Aucun enregistrement', enabled: false },
+        this.state === 'recording'
+          ? { label: '■ Arrêter l’enregistrement', click: () => this.actions.stopRecording() }
+          : { label: '● Démarrer un enregistrement', click: () => this.actions.startRecording() },
         { label: 'Quitter Hark', click: () => this.actions.quit() },
       ]),
     )

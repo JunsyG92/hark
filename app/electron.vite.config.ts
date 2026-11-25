@@ -11,6 +11,7 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/preload/index.ts'),
           toast: resolve(__dirname, 'src/preload/toast.ts'),
+          overlay: resolve(__dirname, 'src/preload/overlay.ts'),
         },
       },
     },
@@ -22,6 +23,7 @@ export default defineConfig({
         input: {
           index: resolve(__dirname, 'src/renderer/index.html'),
           toast: resolve(__dirname, 'src/renderer/toast.html'),
+          overlay: resolve(__dirname, 'src/renderer/overlay.html'),
         },
       },
     },

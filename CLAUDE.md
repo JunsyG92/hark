@@ -8,7 +8,7 @@ Lire d'abord `docs/architecture.md` et `docs/decisions.md`.
   (sauf fournisseur LLM cloud explicitement activé). Pas de télémétrie.
 - Jamais d'enregistrement sans clic explicite de l'utilisateur. La détection ne fait que **mesurer un niveau** (aucun
   échantillon audio n'est stocké ni transmis) et poser une question ; seule la réponse `record` du toast peut déclencher
-  `DetectorService.on_accept` (l'enregistreur, étape 3).
+  `DetectorService.on_accept` → `Recorder.start`. L'API de démarrage manuel est réservée au scope `ui`.
 - Les tâches venant de l'IA, des plugins ou du MCP arrivent **toujours** dans `to_validate`
   (`TaskProposal` n'a pas de champ `column`). Seul le scope `ui` modifie, déplace ou supprime.
 - L'API n'écoute que sur `127.0.0.1` ; le token ne quitte jamais le process main d'Electron.
@@ -34,6 +34,7 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   - `store/` — SQLite ; migrations `store/migrations/NNNN_nom.sql` (numérotation contiguë, jamais modifier une migration publiée)
   - `audio/` — niveaux audio (`levels.py` RMS dBFS, `source.py` loopback via `soundcard`, import tardif)
   - `detect/` — `machine.py` (pur, horloge injectable), `probes.py` (micro utilisé par OS), `service.py` (threads → événement `meeting.detected`)
+  - `record/` — `recorder.py` (deux pistes WAV, threads, reprise après crash), `silence.py` (pur, fin de réunion)
   - `events.py` — bus d'événements interne
   - `auth.py` — token maître (keyring, repli fichier 0600)
   - `main.py` — point d'entrée sidecar (handshake stdout, logs sur stderr)
@@ -42,6 +43,14 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
 - `app/src/renderer/` — React ; logique pure dans `lib/` (testée), composants dans `components/`
 - `contracts/` — JSON Schema + OpenAPI **générés** (ne pas éditer à la main)
 - `docs/increments/` — une note par étape livrée (ce qui a été fait + comment tester à la main)
+
+## Pièges connus
+- **uvicorn re-lève le signal d'arrêt juste après son shutdown** : tout code placé *après* `server.run()` peut ne jamais
+  s'exécuter. La finalisation (arrêt de l'enregistrement) vit dans le `lifespan` de `create_app`. Fermer stdin ⇒
+  `server.should_exit = True` (arrêt propre), jamais `os.kill(SIGTERM)`.
+- Un enregistrement doit rester récupérable : WAV + flush par bloc ; `recover_interrupted()` recompte les vraies images.
+- Dans les tests/e2e Electron, `getAllWindows()[0]` n'est pas le kanban : sélectionner par URL (`index.html`).
+- `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions
 - Python : ruff (lint + format), mypy strict, pytest. Pydantic v2. `from __future__ import annotations`

@@ -126,15 +126,25 @@ class DetectorService:
             prompt = self._machine.prompt
             matched = self._machine.respond(self._clock(), prompt_id, action)
         started = False
+        error: str | None = None
         if matched and action is PromptAction.RECORD and prompt and self.on_accept:
-            started = bool(self.on_accept(prompt))
+            try:
+                started = bool(self.on_accept(prompt))
+            except Exception as exc:
+                error = str(exc)[:300] or type(exc).__name__
+                log.warning("could not start recording: %s", error)
             if not started:
                 with self._lock:
                     self._machine.set_recording(False, self._clock())
         elif matched and action is PromptAction.RECORD:
             with self._lock:  # no recorder yet (step 3): behave like "ignore"
                 self._machine.set_recording(False, self._clock())
-        return PromptResult(ok=matched, recording_started=started)
+        return PromptResult(ok=matched, recording_started=started, error=error)
+
+    def set_recording(self, recording: bool) -> None:
+        """Called by the recorder: no prompts while recording; cooldown afterwards."""
+        with self._lock:
+            self._machine.set_recording(recording, self._clock())
 
     def test_prompt(self) -> bool:
         with self._lock:

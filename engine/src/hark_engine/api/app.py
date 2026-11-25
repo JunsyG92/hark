@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import tempfile
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from .. import __version__
+from ..audio.source import AudioUnavailableError
 from ..detect import DetectorService
 from ..events import EventBus
 from ..models import (
@@ -18,15 +23,29 @@ from ..models import (
     DetectionSettingsPatch,
     DetectionStatus,
     EventType,
+    Meeting,
+    MeetingTitleUpdate,
     PromptResponse,
     PromptResult,
+    RecordingSettings,
+    RecordingSettingsPatch,
+    RecordingStart,
+    RecordingStatus,
     Task,
     TaskCreate,
     TaskMove,
     TaskProposal,
     TaskUpdate,
 )
-from ..store import Database, SettingsRepository, TaskNotFound, TaskRepository
+from ..record import Recorder, RecorderBusy
+from ..store import (
+    Database,
+    MeetingNotFound,
+    MeetingRepository,
+    SettingsRepository,
+    TaskNotFound,
+    TaskRepository,
+)
 from .deps import ProposeScope, ReadScope, UiScope
 from .stream import EventBroker, format_sse
 
@@ -54,8 +73,19 @@ def create_app(
     master_token: str,
     bus: EventBus | None = None,
     detector: DetectorService | None = None,
+    recorder: Recorder | None = None,
 ) -> FastAPI:
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        yield
+        # Graceful shutdown: finalize an in-progress recording (valid WAV files, meeting saved).
+        # Must live here: uvicorn re-raises the termination signal right after this, so code
+        # placed after server.run() would never execute.
+        await run_in_threadpool(app.state.recorder.stop)
+        await run_in_threadpool(app.state.detector.stop)
+
     app = FastAPI(
+        lifespan=lifespan,
         title="Hark local API",
         version=__version__,
         description="Loopback-only API. Bearer token required. Integrations get read/propose.",
@@ -70,11 +100,31 @@ def create_app(
     app.state.bus = events
     detection = detector or DetectorService(SettingsRepository(db), events)
     app.state.detector = detection
+    meetings = MeetingRepository(db)
+    settings_repo = SettingsRepository(db)
+    rec = recorder or Recorder(
+        meetings, settings_repo, events, Path(tempfile.gettempdir()) / "hark-unused"
+    )
+    app.state.recorder = rec
+
+    def _accept(prompt: object) -> bool:
+        # Only the user's click on "Enregistrer" reaches this point.
+        app_name = getattr(prompt, "app", "")
+        rec.start(app="" if app_name == "test" else app_name)
+        return True
+
+    if detection.on_accept is None:
+        detection.on_accept = _accept
+    rec.on_state = detection.set_recording
     broker = EventBroker(events)
 
     @app.exception_handler(TaskNotFound)
     async def _not_found(_: Request, exc: TaskNotFound) -> JSONResponse:
         return JSONResponse({"detail": f"task {exc} not found"}, status_code=404)
+
+    @app.exception_handler(MeetingNotFound)
+    async def _meeting_not_found(_: Request, exc: MeetingNotFound) -> JSONResponse:
+        return JSONResponse({"detail": f"meeting {exc} not found"}, status_code=404)
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -164,6 +214,48 @@ def create_app(
     def detection_test(_: UiScope) -> dict[str, bool]:
         """Show the consent notification once, to check it works. Records nothing."""
         return {"prompted": detection.test_prompt()}
+
+    # ---- meetings & recording ----------------------------------------------------
+    @app.get("/v1/meetings", response_model=list[Meeting])
+    def list_meetings(_: ReadScope, limit: int = 50, offset: int = 0) -> list[Meeting]:
+        return meetings.list_recent(limit=max(1, min(limit, 200)), offset=max(0, offset))
+
+    @app.get("/v1/meetings/{meeting_id}", response_model=Meeting)
+    def get_meeting(meeting_id: str, _: ReadScope) -> Meeting:
+        return meetings.get(meeting_id)
+
+    @app.patch("/v1/meetings/{meeting_id}", response_model=Meeting)
+    def rename_meeting(meeting_id: str, body: MeetingTitleUpdate, _: UiScope) -> Meeting:
+        return meetings.set_title(meeting_id, body.title)
+
+    @app.get("/v1/recording/status", response_model=RecordingStatus)
+    def recording_status(_: ReadScope) -> RecordingStatus:
+        return rec.status()
+
+    @app.post("/v1/recording/start", response_model=Meeting, status_code=status.HTTP_201_CREATED)
+    def recording_start(body: RecordingStart, _: UiScope) -> Meeting:
+        """Explicit user action only (ui scope): integrations can never start a recording."""
+        try:
+            return rec.start(title=body.title)
+        except RecorderBusy as exc:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+        except AudioUnavailableError as exc:
+            raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
+
+    @app.post("/v1/recording/stop", response_model=Meeting)
+    def recording_stop(_: UiScope) -> Meeting:
+        meeting = rec.stop()
+        if meeting is None:
+            raise HTTPException(status.HTTP_409_CONFLICT, "no recording in progress")
+        return meeting
+
+    @app.get("/v1/settings/recording", response_model=RecordingSettings)
+    def get_recording_settings(_: ReadScope) -> RecordingSettings:
+        return settings_repo.get_recording()
+
+    @app.patch("/v1/settings/recording", response_model=RecordingSettings)
+    def patch_recording_settings(body: RecordingSettingsPatch, _: UiScope) -> RecordingSettings:
+        return settings_repo.patch_recording(body)
 
     @app.get("/v1/openapi.json", include_in_schema=False)
     def openapi_doc(_: ReadScope) -> JSONResponse:

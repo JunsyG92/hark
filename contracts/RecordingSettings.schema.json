@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/RecordingSettings.json",
+  "additionalProperties": false,
+  "properties": {
+    "silence_minutes": {
+      "default": 3.0,
+      "maximum": 30.0,
+      "minimum": 1.0,
+      "title": "Silence Minutes",
+      "type": "number"
+    },
+    "silence_threshold_db": {
+      "default": -45.0,
+      "maximum": -10.0,
+      "minimum": -80.0,
+      "title": "Silence Threshold Db",
+      "type": "number"
+    }
+  },
+  "required": [
+    "silence_minutes",
+    "silence_threshold_db"
+  ],
+  "title": "RecordingSettings",
+  "type": "object"
+}

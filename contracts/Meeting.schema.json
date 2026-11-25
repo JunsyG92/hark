@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/Meeting.json",
+  "$defs": {
+    "MeetingStatus": {
+      "enum": [
+        "recording",
+        "recorded",
+        "failed"
+      ],
+      "title": "MeetingStatus",
+      "type": "string"
+    },
+    "TrackKind": {
+      "enum": [
+        "system",
+        "mic"
+      ],
+      "title": "TrackKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "default": "",
+      "maxLength": 200,
+      "title": "Title",
+      "type": "string"
+    },
+    "status": {
+      "$ref": "#/$defs/MeetingStatus"
+    },
+    "app": {
+      "default": "",
+      "maxLength": 200,
+      "title": "App",
+      "type": "string"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "ended_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Ended At"
+    },
+    "duration_ms": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration Ms"
+    },
+    "tracks": {
+      "items": {
+        "$ref": "#/$defs/TrackKind"
+      },
+      "title": "Tracks",
+      "type": "array"
+    },
+    "audio_available": {
+      "description": "Audio files still on disk (see retention).",
+      "title": "Audio Available",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "status",
+    "app",
+    "started_at",
+    "ended_at",
+    "duration_ms",
+    "tracks",
+    "audio_available"
+  ],
+  "title": "Meeting",
+  "type": "object"
+}

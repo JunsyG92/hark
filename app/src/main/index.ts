@@ -2,12 +2,21 @@ import { Notification, app, globalShortcut, ipcMain } from 'electron'
 import { join } from 'node:path'
 import { forward, validateApiRequest } from './apiProxy'
 import { setLaunchAtLogin } from './autostart'
-import { parseDetected, parseToastResponse } from './detection'
+import {
+  allowedActions,
+  endedPayload,
+  parseDetected,
+  parseRecordingStarted,
+  parseSilence,
+  parseTitle,
+  parseToastResponse,
+} from './detection'
 import { Engine, resolveEngineCommand } from './engine'
 import { EngineEvents } from './events'
+import { OverlayWindow } from './overlay'
 import { SettingsStore, isValidAccelerator, type AppSettings } from './settings'
-import { AppTray } from './tray'
 import { ToastWindow } from './toast'
+import { AppTray } from './tray'
 import { KanbanWindow } from './window'
 
 const log = (msg: string): void => console.log(`[hark] ${msg}`)
@@ -29,6 +38,7 @@ async function main(): Promise<void> {
   const settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'))
   const kanban = new KanbanWindow(log)
   const toast = new ToastWindow()
+  const overlay = new OverlayWindow()
   const engine = new Engine(
     resolveEngineCommand({
       isPackaged: app.isPackaged,
@@ -41,9 +51,33 @@ async function main(): Promise<void> {
   )
   engine.start()
 
+  const call = async (method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown) =>
+    forward({ method, path, body }, await engine.ready())
+
+  const notify = (body: string): void => {
+    new Notification({ title: 'Hark', body }).show()
+  }
+
+  async function startRecording(): Promise<void> {
+    const res = await call('POST', '/v1/recording/start', { title: '' })
+    if (res.status >= 400) {
+      const detail = (res.body as { detail?: string } | null)?.detail ?? `HTTP ${res.status}`
+      notify(`Impossible de démarrer l'enregistrement : ${detail}`)
+    } else {
+      notify('Enregistrement démarré. Pense à informer les participants.')
+    }
+  }
+
+  async function stopRecording(): Promise<void> {
+    const res = await call('POST', '/v1/recording/stop')
+    if (res.status >= 400 && res.status !== 409) notify("Impossible d'arrêter l'enregistrement.")
+  }
+
   const tray = new AppTray(
     {
       openKanban: () => kanban.show(),
+      startRecording: () => void startRecording(),
+      stopRecording: () => void stopRecording(),
       toggleLaunchAtLogin: (enabled) => applySettings({ launchAtLogin: enabled }),
       quit: () => app.quit(),
     },
@@ -82,23 +116,23 @@ async function main(): Promise<void> {
   )
   ipcMain.on('hark:hide', () => kanban.hide())
 
+  // ---- consent / "meeting ended?" toast answers ---------------------------------------
   ipcMain.on('hark:toast:respond', (e, raw: unknown) => {
     if (e.sender !== toast.webContents) return // only our toast window may answer
     const answer = parseToastResponse(raw)
+    const shown = toast.shown
     toast.hide()
-    if (!answer) return
+    // Ignore stale/foreign answers: must match the prompt on screen and its kind.
+    if (!answer || !shown || answer.promptId !== shown.promptId) return
+    if (!allowedActions(shown.kind).includes(answer.action)) return
     void (async () => {
       try {
-        const res = await forward(
-          { method: 'POST', path: '/v1/detection/respond', body: { prompt_id: answer.promptId, action: answer.action } },
-          await engine.ready(),
-        )
-        const body = res.body as { ok?: boolean; recording_started?: boolean } | null
+        if (answer.action === 'stop') return void (await stopRecording())
+        if (answer.action === 'continue') return
+        const res = await call('POST', '/v1/detection/respond', { prompt_id: answer.promptId, action: answer.action })
+        const body = res.body as { ok?: boolean; recording_started?: boolean; error?: string | null } | null
         if (answer.action === 'record' && body?.ok && !body.recording_started) {
-          new Notification({
-            title: 'Hark',
-            body: "L'enregistrement n'est pas encore disponible dans cette version (étape 3). Rien n'a été enregistré.",
-          }).show()
+          notify(`L'enregistrement n'a pas pu démarrer${body.error ? ` (${body.error})` : ''}. Rien n'a été enregistré.`)
         }
       } catch (err) {
         log(`could not send toast answer: ${(err as Error).message}`)
@@ -106,12 +140,41 @@ async function main(): Promise<void> {
     })()
   })
 
+  // ---- recording overlay ----------------------------------------------------------------
+  ipcMain.on('hark:overlay:stop', (e) => {
+    if (e.sender === overlay.webContents) void stopRecording()
+  })
+  ipcMain.on('hark:overlay:title', (e, raw: unknown) => {
+    if (e.sender !== overlay.webContents) return
+    const title = parseTitle(raw)
+    const rec = overlay.recording // the meeting id comes from main's own state, never the renderer
+    if (title === null || !rec) return
+    void call('PATCH', `/v1/meetings/${encodeURIComponent(rec.meetingId)}`, { title })
+  })
+
+  // ---- engine events ------------------------------------------------------------------------
   const events = new EngineEvents(
     () => engine.ready(),
     (ev) => {
       if (ev.type === 'meeting.detected') {
         const prompt = parseDetected(ev.data)
         if (prompt) toast.show(prompt)
+      } else if (ev.type === 'meeting.recording_started') {
+        const info = parseRecordingStarted(ev.data)
+        toast.hide()
+        tray.setState('recording')
+        if (info) overlay.show(info)
+        kanban.webContents?.send('hark:recording-changed')
+      } else if (ev.type === 'meeting.recorded') {
+        overlay.hide()
+        toast.hideIfKind('ended')
+        tray.setState('idle')
+        kanban.webContents?.send('hark:recording-changed')
+      } else if (ev.type === 'meeting.silence') {
+        const s = parseSilence(ev.data)
+        if (!s) return
+        if (s.silent) toast.show(endedPayload(s))
+        else toast.hideIfKind('ended') // a voice is back: the question disappears by itself
       } else if (ev.type.startsWith('task.')) {
         kanban.webContents?.send('hark:tasks-changed')
       }
@@ -121,6 +184,7 @@ async function main(): Promise<void> {
 
   kanban.create()
   toast.create()
+  overlay.create()
   events.start()
   tray.create()
   registerShortcut(settings.get().shortcut)
@@ -130,12 +194,21 @@ async function main(): Promise<void> {
   app.on('window-all-closed', () => {
     /* stay in tray */
   })
-  app.on('before-quit', () => {
+
+  // Quit: let the engine finalize an in-progress recording (FLAC files) before the process exits.
+  let quitting = false
+  app.on('before-quit', (e) => {
+    if (quitting) return
+    quitting = true
+    e.preventDefault()
     kanban.setQuitting()
     events.stop()
-    toast.destroy()
     globalShortcut.unregisterAll()
-    engine.stop()
+    void engine.stop().finally(() => {
+      toast.destroy()
+      overlay.destroy()
+      app.exit(0)
+    })
   })
 
   if (!process.argv.includes('--hidden') && !app.isPackaged) kanban.show()
