@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/Task.json",
+  "$defs": {
+    "Column": {
+      "enum": [
+        "to_validate",
+        "todo",
+        "in_progress",
+        "done"
+      ],
+      "title": "Column",
+      "type": "string"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "Pointer to the timestamped transcript excerpt a task comes from.",
+      "properties": {
+        "meeting_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Meeting Id",
+          "type": "string"
+        },
+        "start_ms": {
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        }
+      },
+      "required": [
+        "meeting_id",
+        "start_ms",
+        "end_ms"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Priority": {
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "title": "Priority",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "maxLength": 10000,
+      "title": "Description",
+      "type": "string"
+    },
+    "assignee": {
+      "default": "",
+      "maxLength": 200,
+      "title": "Assignee",
+      "type": "string"
+    },
+    "due": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Due"
+    },
+    "priority": {
+      "$ref": "#/$defs/Priority",
+      "default": "normal"
+    },
+    "column": {
+      "$ref": "#/$defs/Column"
+    },
+    "position": {
+      "description": "Sort key inside the column (ascending).",
+      "title": "Position",
+      "type": "number"
+    },
+    "source": {
+      "description": "manual | meeting:<id> | plugin:<name>",
+      "pattern": "^(manual|meeting:[A-Za-z0-9_-]{1,64}|plugin:[a-z0-9][a-z0-9-]{0,63})$",
+      "title": "Source",
+      "type": "string"
+    },
+    "evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "is_mine": {
+      "default": false,
+      "description": "Task concerns the user (profile match).",
+      "title": "Is Mine",
+      "type": "boolean"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "title",
+    "description",
+    "assignee",
+    "due",
+    "priority",
+    "column",
+    "position",
+    "source",
+    "evidence",
+    "is_mine",
+    "confidence",
+    "created_at",
+    "updated_at"
+  ],
+  "title": "Task",
+  "type": "object"
+}

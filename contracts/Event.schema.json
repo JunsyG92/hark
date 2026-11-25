@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/Event.json",
+  "$defs": {
+    "EventType": {
+      "enum": [
+        "meeting.detected",
+        "meeting.recording_started",
+        "meeting.recorded",
+        "transcript.ready",
+        "analysis.ready",
+        "task.proposed",
+        "task.updated"
+      ],
+      "title": "EventType",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "type": {
+      "$ref": "#/$defs/EventType"
+    },
+    "occurred_at": {
+      "format": "date-time",
+      "title": "Occurred At",
+      "type": "string"
+    },
+    "data": {
+      "additionalProperties": true,
+      "title": "Data",
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "type",
+    "occurred_at",
+    "data"
+  ],
+  "title": "Event",
+  "type": "object"
+}

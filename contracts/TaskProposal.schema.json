@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/TaskProposal.json",
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "description": "Pointer to the timestamped transcript excerpt a task comes from.",
+      "properties": {
+        "meeting_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Meeting Id",
+          "type": "string"
+        },
+        "start_ms": {
+          "minimum": 0,
+          "title": "Start Ms",
+          "type": "integer"
+        },
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        }
+      },
+      "required": [
+        "meeting_id",
+        "start_ms"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Priority": {
+      "enum": [
+        "low",
+        "normal",
+        "high"
+      ],
+      "title": "Priority",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What integrations may send. Always lands in the `to_validate` column.",
+  "properties": {
+    "title": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "description": {
+      "default": "",
+      "maxLength": 10000,
+      "title": "Description",
+      "type": "string"
+    },
+    "assignee": {
+      "default": "",
+      "maxLength": 200,
+      "title": "Assignee",
+      "type": "string"
+    },
+    "due": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Due"
+    },
+    "priority": {
+      "$ref": "#/$defs/Priority",
+      "default": "normal"
+    },
+    "evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    }
+  },
+  "required": [
+    "title"
+  ],
+  "title": "TaskProposal",
+  "type": "object"
+}

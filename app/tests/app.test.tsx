@@ -1,0 +1,58 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { App } from '../src/renderer/src/App'
+import type { Task } from '../src/renderer/src/lib/contracts.gen'
+
+function fakeTask(over: Partial<Task>): Task {
+  return {
+    id: 'a', title: 'Préparer le budget Q1', description: '', assignee: 'Moi', due: null, priority: 'high',
+    column: 'to_validate', position: 0, source: 'meeting:m1', evidence: null, is_mine: true, confidence: 0.8,
+    created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', ...over,
+  }
+}
+
+function installBridge(tasks: Task[]) {
+  const api = vi.fn(async (req: { method: string; path: string; body?: unknown }) => {
+    if (req.method === 'GET') return { status: 200, body: tasks }
+    if (req.method === 'POST' && req.path === '/v1/tasks') {
+      const t = fakeTask({ id: 'new', title: (req.body as { title: string }).title, column: 'todo', is_mine: false, source: 'manual' })
+      tasks.push(t)
+      return { status: 201, body: t }
+    }
+    return { status: 200, body: null }
+  })
+  window.hark = {
+    api, getSettings: vi.fn(), setSettings: vi.fn(), hide: vi.fn(), onShown: () => () => {}, platform: 'linux',
+  } as unknown as Window['hark']
+  return api
+}
+
+afterEach(cleanup)
+
+describe('App', () => {
+  it('renders the four columns and the proposed task', async () => {
+    installBridge([fakeTask({})])
+    await act(async () => render(<App />))
+    for (const label of ['À valider', 'À faire', 'En cours', 'Fait']) expect(screen.getByRole('region', { name: label })).toBeTruthy()
+    expect(screen.getByText('Préparer le budget Q1')).toBeTruthy()
+    expect(screen.getByText('moi')).toBeTruthy()
+  })
+
+  it('creates a task via quick add', async () => {
+    const api = installBridge([])
+    await act(async () => render(<App />))
+    const input = document.querySelector<HTMLInputElement>('[data-quick-add="todo"]')!
+    fireEvent.change(input, { target: { value: 'Envoyer le CR' } })
+    await act(async () => fireEvent.keyDown(input, { key: 'Enter' }))
+    expect(api).toHaveBeenCalledWith({ method: 'POST', path: '/v1/tasks', body: { title: 'Envoyer le CR', column: 'todo' } })
+    expect(await screen.findByText('Envoyer le CR')).toBeTruthy()
+  })
+
+  it('Escape hides the window', async () => {
+    installBridge([])
+    await act(async () => render(<App />))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(window.hark.hide).toHaveBeenCalled()
+  })
+})

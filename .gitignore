@@ -1,0 +1,17 @@
+node_modules/
+out/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.sqlite3*
+.env
+.env.*
+# Never commit real meeting data
+*.wav
+*.flac
+!engine/tests/fixtures/**/*.wav
+!engine/tests/fixtures/**/*.flac
