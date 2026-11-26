@@ -99,14 +99,13 @@ function bridge(people: Person[], tasks: Task[]) {
     if (req.path === '/v1/tasks' && req.method === 'POST') return { status: 201, body: task({ id: 'n' }) }
     return { status: 200, body: [] }
   })
-  window.hark = { api, hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, onRecordingChanged: () => () => {}, platform: 'linux' } as unknown as Window['hark']
+  window.hark = { api, confirm: vi.fn(async () => true), hide: vi.fn(), onShown: () => () => {}, onTasksChanged: () => () => {}, onRecordingChanged: () => () => {}, platform: 'linux' } as unknown as Window['hark']
   return calls
 }
 
 describe('Team settings', () => {
   it('adds, edits and removes team members', async () => {
     const calls = bridge([paul], [])
-    vi.spyOn(window, 'confirm').mockReturnValue(true)
     await act(async () => void render(<TeamSection />))
     expect(await screen.findByText('Paul Durand')).toBeTruthy()
     fireEvent.change(screen.getByLabelText('Nouveau prénom'), { target: { value: 'Léa' } })
@@ -136,5 +135,19 @@ describe('Kanban filter (lead follow-up)', () => {
     fireEvent.change(input, { target: { value: 'Relancer le client' } })
     await act(async () => fireEvent.keyDown(input, { key: 'Enter' }))
     expect(calls).toContainEqual({ method: 'POST', path: '/v1/tasks', body: { title: 'Relancer le client', column: 'todo', assignee_id: 'p1' } })
+  })
+})
+
+describe('pin button', () => {
+  it('toggles « hide when clicking elsewhere » in the app settings', async () => {
+    bridge([], [])
+    const setSettings = vi.fn(async (p: { hideOnBlur?: boolean }) => ({ shortcut: 'Control+Alt+K', launchAtLogin: false, hideOnBlur: p.hideOnBlur ?? true }))
+    Object.assign(window.hark, { getSettings: vi.fn(async () => ({ shortcut: 'Control+Alt+K', launchAtLogin: false, hideOnBlur: true })), setSettings })
+    await act(async () => void render(<App />))
+    const pin = screen.getByLabelText('Épingler le panneau')
+    expect(pin.getAttribute('aria-pressed')).toBe('false')
+    await act(async () => fireEvent.click(pin))
+    expect(setSettings).toHaveBeenCalledWith({ hideOnBlur: false })
+    expect(pin.getAttribute('aria-pressed')).toBe('true')
   })
 })

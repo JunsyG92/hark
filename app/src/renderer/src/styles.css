@@ -479,3 +479,5 @@ mark { background: color-mix(in oklab, var(--accent) 28%, transparent); color: i
 .transcript__row .pill { justify-self: start; }
 .detail__actions .btn--danger { margin-left: auto; }
 .modal__panel { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.icon-btn--on { color: var(--accent); background: color-mix(in oklab, var(--accent) 14%, transparent); }
+.icon-btn--on svg { fill: color-mix(in oklab, var(--accent) 35%, transparent); }

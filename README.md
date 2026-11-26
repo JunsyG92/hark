@@ -125,7 +125,8 @@ quittera ta machine, fournis une clé (rangée dans le gestionnaire d'identifian
 ## Le panneau
 
 `Ctrl+Alt+K` fait glisser Hark depuis la droite de l'écran où se trouve ta souris (toute la hauteur, au-dessus des autres
-fenêtres) ; `Échap` ou × le masque. Les quatre colonnes sont **empilées** ; clique sur un en-tête (À valider, À faire,
+fenêtres) ; `Échap`, × ou **un clic ailleurs** le masque. Le bouton 📌 (ou Réglages → « Masquer le panneau quand je clique
+ailleurs ») l'épingle pour qu'il reste affiché pendant que tu travailles. Les quatre colonnes sont **empilées** ; clique sur un en-tête (À valider, À faire,
 En cours, Fait) pour le **replier/déplier** : ton choix est mémorisé, et une colonne repliée accepte toujours qu'on y dépose
 une tâche. Le style (surfaces chaudes, accent terracotta, thème clair/sombre automatique) reprend celui d'[aska](https://github.com/JunsyG92/aska).
 

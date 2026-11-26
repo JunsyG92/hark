@@ -69,6 +69,9 @@ pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --
 - Les tâches créées par l'analyse passent par `TaskRepository.propose` : **toujours** `to_validate`.
 - Le kanban est un **panneau latéral** étroit (`panelGeometry.ts`) : en e2e, lancer Xvfb avec un grand écran
   (`xvfb-run -a -s "-screen 0 1600x1000x24"`), sinon les sections du bas sont hors écran.
+- Le panneau se masque sur perte de focus (`blur.ts`) : toute boîte de dialogue native ouverte depuis le panneau doit passer par
+  `KanbanWindow.withDialog()`, et jamais `window.confirm()` dans le renderer (utiliser `window.hark.confirm`).
+  Test réel au clic : `xvfb-run -a -s "-screen 0 1600x1000x24" scripts/e2e-outside-click.sh` (openbox, xdotool, xterm).
 - `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions

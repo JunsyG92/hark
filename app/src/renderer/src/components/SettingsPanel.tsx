@@ -8,18 +8,20 @@ import { TranscriptionSection } from './TranscriptionSection'
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [shortcut, setShortcut] = useState('')
   const [launchAtLogin, setLaunchAtLogin] = useState(false)
+  const [hideOnBlur, setHideOnBlur] = useState(true)
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
     void window.hark.getSettings().then((s) => {
       setShortcut(s.shortcut)
       setLaunchAtLogin(s.launchAtLogin)
+      setHideOnBlur(s.hideOnBlur ?? true)
     })
   }, [])
 
   async function save() {
     try {
-      await window.hark.setSettings({ shortcut: shortcut.trim(), launchAtLogin })
+      await window.hark.setSettings({ shortcut: shortcut.trim(), launchAtLogin, hideOnBlur })
       setMessage('Enregistré')
     } catch (err) {
       setMessage(String((err as Error).message).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
@@ -37,6 +39,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <label className="checkbox">
           <input type="checkbox" checked={launchAtLogin} onChange={(e) => setLaunchAtLogin(e.target.checked)} />
           Lancer Hark au démarrage de la session
+        </label>
+        <label className="checkbox">
+          <input type="checkbox" checked={hideOnBlur} onChange={(e) => setHideOnBlur(e.target.checked)} />
+          Masquer le panneau quand je clique ailleurs (sinon il reste épinglé)
         </label>
         {message && <p className="modal__source">{message}</p>}
         <TeamSection />

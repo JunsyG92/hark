@@ -15,7 +15,9 @@ describe('settings', () => {
 
   it('sanitizes unknown or invalid values to defaults', () => {
     expect(sanitizeSettings({ shortcut: 'nope', launchAtLogin: 'yes', extra: 1 })).toEqual(DEFAULT_SETTINGS)
-    expect(sanitizeSettings({ shortcut: 'Alt+Shift+H', launchAtLogin: true })).toEqual({ shortcut: 'Alt+Shift+H', launchAtLogin: true })
+    expect(sanitizeSettings({ shortcut: 'Alt+Shift+H', launchAtLogin: true })).toEqual({ shortcut: 'Alt+Shift+H', launchAtLogin: true, hideOnBlur: true })
+    expect(sanitizeSettings({ hideOnBlur: false }).hideOnBlur).toBe(false)
+    expect(sanitizeSettings({ hideOnBlur: 'no' }).hideOnBlur).toBe(true)
   })
 })
 

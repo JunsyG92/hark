@@ -2,8 +2,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 export interface HarkBridge {
   api: (req: { method: string; path: string; body?: unknown }) => Promise<{ status: number; body: unknown }>
-  getSettings: () => Promise<{ shortcut: string; launchAtLogin: boolean }>
-  setSettings: (patch: { shortcut?: string; launchAtLogin?: boolean }) => Promise<{ shortcut: string; launchAtLogin: boolean }>
+  getSettings: () => Promise<{ shortcut: string; launchAtLogin: boolean; hideOnBlur: boolean }>
+  setSettings: (patch: { shortcut?: string; launchAtLogin?: boolean; hideOnBlur?: boolean }) => Promise<{ shortcut: string; launchAtLogin: boolean; hideOnBlur: boolean }>
+  confirm: (req: { message: string; detail?: string; confirmLabel?: string }) => Promise<boolean>
   hide: () => void
   onShown: (cb: () => void) => () => void
   onTasksChanged: (cb: () => void) => () => void
@@ -18,6 +19,7 @@ const bridge: HarkBridge = {
   getSettings: () => ipcRenderer.invoke('hark:settings:get'),
   setSettings: (patch) => ipcRenderer.invoke('hark:settings:set', patch),
   hide: () => ipcRenderer.send('hark:hide'),
+  confirm: (req) => ipcRenderer.invoke('hark:confirm', req),
   onShown: (cb) => {
     const listener = (): void => cb()
     ipcRenderer.on('hark:shown', listener)

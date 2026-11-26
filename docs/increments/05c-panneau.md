@@ -25,3 +25,12 @@ tâche sur l'en-tête replié de « Fait » : elle y est déposée. Change le th
 - Sous Linux, la transparence demande un compositeur (GNOME, KDE… l'ont) ; sans compositeur, les coins arrondis
   apparaissent sur fond noir.
 - La largeur est fixe (460 px) ; pas encore de redimensionnement ni de choix du côté (gauche/droite).
+
+## Ajout : masquage au clic extérieur
+- Un clic sur une autre fenêtre masque le panneau (comme aska). Il reste affiché s'il est **épinglé** (bouton 📌 dans l'en-tête,
+  ou Réglages → « Masquer le panneau quand je clique ailleurs »), pendant une boîte de dialogue de Hark (export Markdown,
+  confirmations de suppression, désormais natives), avec les devtools ouverts, et juste après l'ouverture.
+- Garde-fou : si le pointeur est **dans** le panneau au moment de la perte de focus (liste déroulante, calendrier), il ne se
+  masque pas. Sous Openbox, ces listes ne prennent pas le focus (vérifié) : ce garde-fou vise les bureaux où elles le prennent
+  et n'a pas pu être démontré ici.
+- Test réel au clic sous gestionnaire de fenêtres (Openbox + xdotool) : `scripts/e2e-outside-click.sh` (aussi en CI).

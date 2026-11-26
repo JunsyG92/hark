@@ -25,7 +25,7 @@ function bridge(handlers: Record<string, unknown>) {
     const h = handlers[key]
     return { status: 200, body: typeof h === 'function' ? (h as (b: unknown) => unknown)(req.body) : (h ?? []) }
   })
-  window.hark = { api, onMeetingsChanged: () => () => {}, saveFile: vi.fn(async () => ({ saved: true })) } as unknown as Window['hark']
+  window.hark = { api, onMeetingsChanged: () => () => {}, saveFile: vi.fn(async () => ({ saved: true })), confirm: vi.fn(async () => true) } as unknown as Window['hark']
   return { api, calls }
 }
 
@@ -106,8 +106,9 @@ describe('MeetingsView', () => {
 
   it('delete asks for confirmation first', async () => {
     const { api, calls } = bridge({ 'GET /v1/meetings': [meeting()], 'GET /v1/meetings/m1/transcript': [] })
-    vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     await act(async () => void render(<MeetingsView api={createApi(api)} onError={() => {}} />))
+    const confirm = window.hark.confirm as ReturnType<typeof vi.fn>
+    confirm.mockResolvedValueOnce(false).mockResolvedValueOnce(true)
     await act(async () => fireEvent.click(await screen.findByText('Revue budget')))
     await act(async () => fireEvent.click(await screen.findByText('Supprimer')))
     expect(calls).not.toContain('DELETE /v1/meetings/m1')

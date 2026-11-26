@@ -31,6 +31,7 @@ export function App() {
   const [filter, setFilterState] = useState<TaskFilter>('all')
   const [collapsed, setCollapsed] = useState<Set<Column>>(() => loadCollapsed())
   const [entering, setEntering] = useState(true)
+  const [pinned, setPinned] = useState(false)
   const peopleById = useMemo(() => new Map(people.map((p) => [p.id, p])), [people])
   const counts = useMemo(() => openCounts(allTasks), [allTasks])
   const [editing, setEditing] = useState<Task | null>(null)
@@ -144,6 +145,22 @@ export function App() {
   }
 
   useEffect(() => {
+    void Promise.resolve(window.hark.getSettings?.())
+      .then((s) => s && setPinned(!s.hideOnBlur))
+      .catch(() => undefined)
+  }, [])
+
+  async function togglePin() {
+    const next = !pinned
+    setPinned(next)
+    try {
+      await window.hark.setSettings({ hideOnBlur: !next })
+    } catch {
+      setPinned(!next)
+    }
+  }
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('hark.filter')
       if (saved) setFilterState(saved as TaskFilter)
@@ -183,6 +200,15 @@ export function App() {
         </nav>
         <span className="spacer" />
         <RecordingBar api={api} onError={setError} />
+        <button
+          className={`icon-btn${pinned ? ' icon-btn--on' : ''}`}
+          title={pinned ? 'Épinglé : reste affiché quand tu cliques ailleurs' : 'Épingler (sinon le panneau se masque quand tu cliques ailleurs)'}
+          aria-label="Épingler le panneau"
+          aria-pressed={pinned}
+          onClick={() => void togglePin()}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z" /><path d="M12 16v4" /></svg>
+        </button>
         <button className="icon-btn" title="Réglages" aria-label="Réglages" onClick={() => setShowSettings(true)}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
         </button>

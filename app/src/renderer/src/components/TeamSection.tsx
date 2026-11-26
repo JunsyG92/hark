@@ -64,11 +64,13 @@ export function TeamSection() {
               <button
                 type="button"
                 className="btn btn--danger"
-                onClick={() => {
-                  if (window.confirm(`Retirer ${personName(p)} de l’équipe ? Ses tâches gardent son nom mais ne lui sont plus liées.`)) {
-                    void run(() => api.deletePerson(p.id))
-                  }
-                }}
+                onClick={() =>
+                  void window.hark
+                    .confirm({ message: `Retirer ${personName(p)} de l’équipe ?`, detail: 'Ses tâches gardent son nom mais ne lui sont plus liées.', confirmLabel: 'Retirer' })
+                    .then((ok) => {
+                      if (ok) return run(() => api.deletePerson(p.id))
+                    })
+                }
               >
                 Retirer
               </button>

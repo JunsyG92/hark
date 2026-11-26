@@ -1,4 +1,5 @@
 import { BrowserWindow, screen, shell } from 'electron'
+import { shouldHideOnBlur } from './blur'
 import { panelBounds } from './panelGeometry'
 import { join } from 'node:path'
 
@@ -10,8 +11,13 @@ import { join } from 'node:path'
 export class KanbanWindow {
   private win: BrowserWindow | null = null
   private quitting = false
+  private shownAt = 0
+  private dialogDepth = 0
 
-  constructor(private readonly log: (msg: string) => void) {}
+  constructor(
+    private readonly log: (msg: string) => void,
+    private readonly hideOnBlur: () => boolean = () => true,
+  ) {}
 
   create(): BrowserWindow {
     const area = screen.getPrimaryDisplay().workArea
@@ -40,6 +46,19 @@ export class KanbanWindow {
       },
     })
 
+    // Click outside: the panel hides (unless pinned, or focus went to something of its own).
+    win.on('blur', () => {
+      const hide = shouldHideOnBlur({
+        enabled: this.hideOnBlur(),
+        visible: win.isVisible(),
+        dialogOpen: this.dialogDepth > 0,
+        devToolsOpen: win.webContents.isDevToolsOpened(),
+        msSinceShow: Date.now() - this.shownAt,
+        cursor: screen.getCursorScreenPoint(),
+        bounds: win.getBounds(),
+      })
+      if (hide) win.hide()
+    })
     win.on('close', (e) => {
       if (!this.quitting) {
         e.preventDefault()
@@ -79,6 +98,7 @@ export class KanbanWindow {
     if (win.isMinimized()) win.restore()
     // follow the user: dock on the screen where the cursor is
     win.setBounds(panelBounds(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea))
+    this.shownAt = Date.now()
     win.show()
     win.focus()
     win.webContents.send('hark:shown')
@@ -87,6 +107,17 @@ export class KanbanWindow {
 
   hide(): void {
     this.win?.hide()
+  }
+
+  /** Run a native dialog without the panel hiding behind it (the dialog takes the focus). */
+  async withDialog<T>(run: (win: BrowserWindow | null) => Promise<T>): Promise<T> {
+    this.dialogDepth += 1
+    try {
+      return await run(this.win)
+    } finally {
+      this.dialogDepth -= 1
+      this.win?.focus()
+    }
   }
 
   get window(): BrowserWindow | null {

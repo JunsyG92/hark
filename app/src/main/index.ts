@@ -14,7 +14,7 @@ import {
 } from './detection'
 import { Engine, resolveEngineCommand } from './engine'
 import { EngineEvents } from './events'
-import { parseSaveRequest } from './files'
+import { parseConfirm, parseSaveRequest } from './files'
 import { OFFLINE_SWITCHES, blockNonLocalRequests } from './network'
 import { OverlayWindow } from './overlay'
 import { SettingsStore, isValidAccelerator, type AppSettings } from './settings'
@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   await app.whenReady()
   blockNonLocalRequests(session.defaultSession, (url) => log(`BLOCKED non-local request: ${url}`))
   const settings = new SettingsStore(join(app.getPath('userData'), 'settings.json'))
-  const kanban = new KanbanWindow(log)
+  const kanban = new KanbanWindow(log, () => settings.get().hideOnBlur)
   const toast = new ToastWindow()
   const overlay = new OverlayWindow()
   const engine = new Engine(
@@ -120,13 +120,20 @@ async function main(): Promise<void> {
     applySettings((patch && typeof patch === 'object' ? patch : {}) as Partial<AppSettings>),
   )
   ipcMain.on('hark:hide', () => kanban.hide())
+  ipcMain.handle('hark:confirm', async (e, raw: unknown) => {
+    if (e.sender !== kanban.webContents) return false
+    const req = parseConfirm(raw)
+    if (!req) return false
+    const options = { type: 'question' as const, buttons: ['Annuler', req.confirmLabel], defaultId: 0, cancelId: 0, message: req.message, detail: req.detail, noLink: true }
+    const res = await kanban.withDialog((win) => (win ? dialog.showMessageBox(win, options) : dialog.showMessageBox(options)))
+    return res.response === 1
+  })
   ipcMain.handle('hark:save-file', async (e, raw: unknown) => {
     if (e.sender !== kanban.webContents) throw new Error('forbidden')
     const req = parseSaveRequest(raw)
     if (!req) throw new Error('invalid request')
-    const win = kanban.window
     const options = { defaultPath: join(app.getPath('documents'), req.fileName), filters: [{ name: 'Markdown', extensions: ['md'] }] }
-    const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
+    const res = await kanban.withDialog((win) => (win ? dialog.showSaveDialog(win, options) : dialog.showSaveDialog(options)))
     if (res.canceled || !res.filePath) return { saved: false }
     await writeFile(res.filePath, req.content, 'utf8')
     return { saved: true }

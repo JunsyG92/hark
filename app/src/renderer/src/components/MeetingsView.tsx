@@ -195,7 +195,8 @@ function MeetingDetail({
   }
 
   async function remove() {
-    if (!window.confirm('Supprimer cette réunion, sa transcription et son audio ? Cette action est définitive.')) return
+    const ok = await window.hark.confirm({ message: 'Supprimer cette réunion ?', detail: 'Sa transcription, son analyse et son audio seront supprimés. Cette action est définitive.', confirmLabel: 'Supprimer' })
+    if (!ok) return
     try {
       await api.deleteMeeting(meeting.id)
       onGone()

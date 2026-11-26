@@ -5,11 +5,14 @@ export interface AppSettings {
   /** Electron accelerator, e.g. "Control+Alt+K". */
   shortcut: string
   launchAtLogin: boolean
+  /** Hide the panel when clicking outside it (off = pinned). */
+  hideOnBlur: boolean
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   shortcut: 'Control+Alt+K',
   launchAtLogin: false,
+  hideOnBlur: true,
 }
 
 const MODIFIERS = new Set([
@@ -33,6 +36,7 @@ export function sanitizeSettings(raw: unknown): AppSettings {
     const r = raw as Record<string, unknown>
     if (typeof r.shortcut === 'string' && isValidAccelerator(r.shortcut)) out.shortcut = r.shortcut
     if (typeof r.launchAtLogin === 'boolean') out.launchAtLogin = r.launchAtLogin
+    if (typeof r.hideOnBlur === 'boolean') out.hideOnBlur = r.hideOnBlur
   }
   return out
 }

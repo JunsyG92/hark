@@ -15,3 +15,15 @@ export function parseSaveRequest(raw: unknown): { fileName: string; content: str
   if (Buffer.byteLength(content, 'utf8') > MAX_EXPORT_BYTES) return null
   return { fileName: sanitizeFileName(suggestedName), content }
 }
+
+/** A native confirmation requested by the renderer (bounded strings only). */
+export function parseConfirm(raw: unknown): { message: string; detail: string; confirmLabel: string } | null {
+  if (!raw || typeof raw !== 'object') return null
+  const { message, detail, confirmLabel } = raw as Record<string, unknown>
+  if (typeof message !== 'string' || !message || message.length > 300) return null
+  return {
+    message,
+    detail: typeof detail === 'string' ? detail.slice(0, 600) : '',
+    confirmLabel: typeof confirmLabel === 'string' && confirmLabel && confirmLabel.length <= 40 ? confirmLabel : 'OK',
+  }
+}
