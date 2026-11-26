@@ -51,13 +51,12 @@ export function RecordingBar({ api, onError }: { api: HarkApi; onError: (msg: st
 
   if (status?.recording) {
     return (
-      <div className="recbar recbar--on" role="status">
+      <div className="recbar recbar--on" role="status" aria-label={`Enregistrement en cours : ${formatDuration(status.elapsed_s)}`}>
         <span className="recbar__dot" aria-hidden="true" />
-        <strong>REC</strong>
         <span className="recbar__time">{formatDuration(status.elapsed_s)}</span>
         {status.warnings.length > 0 && <span className="recbar__warn" title={status.warnings.join('\n')}>⚠</span>}
-        <button className="btn recbar__stop" onClick={() => void stop()}>
-          ■ Stop
+        <button className="icon-btn recbar__stop" title="Arrêter l’enregistrement" aria-label="Arrêter l’enregistrement" onClick={() => void stop()}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="2" /></svg>
         </button>
       </div>
     )
@@ -65,8 +64,8 @@ export function RecordingBar({ api, onError }: { api: HarkApi; onError: (msg: st
   return (
     <div className="recbar">
       {reminder && <span className="recbar__hint" role="status">Pense à informer les participants.</span>}
-      <button className="btn" data-testid="rec-button" onClick={() => void start()}>
-        ● Enregistrer
+      <button className="icon-btn recbar__start" data-testid="rec-button" title="Enregistrer cette réunion" aria-label="Enregistrer" onClick={() => void start()}>
+        <span className="recbar__dot recbar__dot--idle" aria-hidden="true" />
       </button>
     </div>
   )

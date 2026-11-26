@@ -1,0 +1,301 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/ProgressSummary.json",
+  "$defs": {
+    "Badge": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "earned": {
+          "title": "Earned",
+          "type": "boolean"
+        },
+        "progress": {
+          "title": "Progress",
+          "type": "integer"
+        },
+        "target": {
+          "title": "Target",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "description",
+        "earned",
+        "progress",
+        "target"
+      ],
+      "title": "Badge",
+      "type": "object"
+    },
+    "CompletedToday": {
+      "additionalProperties": false,
+      "properties": {
+        "task_id": {
+          "title": "Task Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task_id",
+        "title",
+        "points"
+      ],
+      "title": "CompletedToday",
+      "type": "object"
+    },
+    "DayStat": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "title": "Date",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "date",
+        "completed",
+        "points"
+      ],
+      "title": "DayStat",
+      "type": "object"
+    },
+    "Level": {
+      "additionalProperties": false,
+      "properties": {
+        "level": {
+          "title": "Level",
+          "type": "integer"
+        },
+        "xp": {
+          "title": "Xp",
+          "type": "integer"
+        },
+        "level_start": {
+          "title": "Level Start",
+          "type": "integer"
+        },
+        "next_at": {
+          "title": "Next At",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "level",
+        "xp",
+        "level_start",
+        "next_at"
+      ],
+      "title": "Level",
+      "type": "object"
+    },
+    "PeriodProgress": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "description": "YYYY-MM for a month, YYYY for a year.",
+          "title": "Key",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        },
+        "previous_completed": {
+          "title": "Previous Completed",
+          "type": "integer"
+        },
+        "days": {
+          "description": "Only days with activity.",
+          "items": {
+            "$ref": "#/$defs/DayStat"
+          },
+          "title": "Days",
+          "type": "array"
+        },
+        "goal_days": {
+          "description": "Days in the period where the daily goal was reached.",
+          "title": "Goal Days",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "completed",
+        "points",
+        "previous_completed",
+        "days",
+        "goal_days"
+      ],
+      "title": "PeriodProgress",
+      "type": "object"
+    },
+    "Streak": {
+      "additionalProperties": false,
+      "properties": {
+        "current": {
+          "title": "Current",
+          "type": "integer"
+        },
+        "best": {
+          "title": "Best",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "current",
+        "best"
+      ],
+      "title": "Streak",
+      "type": "object"
+    },
+    "TeamMemberProgress": {
+      "additionalProperties": false,
+      "properties": {
+        "person_id": {
+          "title": "Person Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "person_id",
+        "name",
+        "completed"
+      ],
+      "title": "TeamMemberProgress",
+      "type": "object"
+    },
+    "TodayProgress": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "title": "Date",
+          "type": "string"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "goal": {
+          "title": "Goal",
+          "type": "integer"
+        },
+        "goal_reached": {
+          "title": "Goal Reached",
+          "type": "boolean"
+        },
+        "points": {
+          "title": "Points",
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/CompletedToday"
+          },
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "date",
+        "completed",
+        "goal",
+        "goal_reached",
+        "points",
+        "tasks"
+      ],
+      "title": "TodayProgress",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "today": {
+      "$ref": "#/$defs/TodayProgress"
+    },
+    "streak": {
+      "$ref": "#/$defs/Streak"
+    },
+    "level": {
+      "$ref": "#/$defs/Level"
+    },
+    "month": {
+      "$ref": "#/$defs/PeriodProgress"
+    },
+    "year": {
+      "$ref": "#/$defs/PeriodProgress"
+    },
+    "badges": {
+      "items": {
+        "$ref": "#/$defs/Badge"
+      },
+      "title": "Badges",
+      "type": "array"
+    },
+    "team": {
+      "description": "Team completions in the month (no points, no ranking).",
+      "items": {
+        "$ref": "#/$defs/TeamMemberProgress"
+      },
+      "title": "Team",
+      "type": "array"
+    }
+  },
+  "required": [
+    "enabled",
+    "today",
+    "streak",
+    "level",
+    "month",
+    "year",
+    "badges",
+    "team"
+  ],
+  "title": "ProgressSummary",
+  "type": "object"
+}

@@ -115,9 +115,9 @@ describe('recording bar', () => {
   it('while recording: REC indicator, elapsed time and an always-available Stop', async () => {
     const { api, calls } = bridge({ recording: true, elapsed_s: 125, warnings: ['mic: no microphone found'] })
     await act(async () => void render(<RecordingBar api={createApi(api)} onError={() => {}} />))
-    expect(screen.getByText('REC')).toBeTruthy()
+    expect(screen.getByRole('status', { name: 'Enregistrement en cours : 02:05' })).toBeTruthy()
     expect(screen.getByText('02:05')).toBeTruthy()
-    await act(async () => fireEvent.click(screen.getByText('■ Stop')))
+    await act(async () => fireEvent.click(screen.getByLabelText('Arrêter l’enregistrement')))
     expect(calls).toContain('POST /v1/recording/stop')
   })
 })

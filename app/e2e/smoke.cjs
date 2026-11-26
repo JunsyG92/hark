@@ -45,6 +45,11 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   await win.mouse.move(cb.x + 40, cb.y + 20, { steps: 5 })
   await win.mouse.move(db.x + 40, db.y + 20, { steps: 15 }); await win.mouse.up()
   await win.waitForTimeout(500)
+  // --- gamification: finishing my task is celebrated and counted for today
+  await win.waitForSelector('.celebrate:has-text("+10 pts")')
+  await win.click('button.tab:has-text("Progrès")')
+  await win.waitForSelector('svg.ring[aria-label="1 sur 3"]')
+  await win.click('button.tab:has-text("Kanban")')
   // toggle timing: hide then show via main
   const timings = await app.evaluate(async ({ BrowserWindow }) => {
     const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('index.html')); const out = []
@@ -111,7 +116,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   if (await overlayVisible()) throw new Error('overlay visible before recording: ' + JSON.stringify(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map((w) => [w.webContents.getURL().split('/').pop(), w.isVisible()]))))
   await call('PATCH', '/v1/settings/transcription', { auto_transcribe: false, retention_days: 7 })
   await win.click('[data-testid=rec-button]')
-  await win.waitForSelector('text=REC')
+  await win.waitForSelector('.recbar--on')
   for (let i = 0; i < 50 && !(await overlayVisible()); i++) await new Promise((r) => setTimeout(r, 100))
   if (!(await overlayVisible())) throw new Error('recording overlay not visible')
   const ov = overlayWin()

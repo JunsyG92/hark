@@ -13,7 +13,11 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ColumnView } from './components/ColumnView'
+import { CelebrationToast } from './components/CelebrationToast'
 import { MeetingsView, type FocusRequest } from './components/MeetingsView'
+import { ProgressView } from './components/ProgressView'
+import { celebrate, type Celebration } from './lib/progress'
+import type { ProgressSummary } from './lib/api'
 import { RecordingBar } from './components/RecordingBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { TaskCard } from './components/TaskCard'
@@ -36,7 +40,10 @@ export function App() {
   const counts = useMemo(() => openCounts(allTasks), [allTasks])
   const [editing, setEditing] = useState<Task | null>(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [view, setView] = useState<'kanban' | 'meetings'>('kanban')
+  const [view, setView] = useState<'kanban' | 'meetings' | 'progress'>('kanban')
+  const [party, setParty] = useState<Celebration | null>(null)
+  const lastProgress = useRef<ProgressSummary | null>(null)
+  const [progressOn, setProgressOn] = useState(true)
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   const [dragged, setDragged] = useState<Task | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -122,11 +129,27 @@ export function App() {
     const final = findTask(next, activeId)!
     try {
       await api.moveTask(activeId, final.column, final.index)
+      void refreshProgress(true)
     } catch (err) {
       setError((err as Error).message)
       await reload()
     }
   }
+
+  const refreshProgress = useCallback(async (celebrateChanges: boolean) => {
+    try {
+      const next = await api.progress()
+      setProgressOn(next.enabled)
+      if (celebrateChanges) setParty(celebrate(lastProgress.current, next))
+      lastProgress.current = next
+    } catch {
+      /* progress is optional: never block the board */
+    }
+  }, [api])
+
+  useEffect(() => {
+    void refreshProgress(false)
+  }, [refreshProgress])
 
   async function create(column: Column, title: string) {
     // creating while filtered on a person assigns the new task to that person
@@ -197,6 +220,9 @@ export function App() {
         <nav className="tabs" aria-label="Vues">
           <button className={`tab${view === 'kanban' ? ' tab--on' : ''}`} onClick={() => setView('kanban')}>Kanban</button>
           <button className={`tab${view === 'meetings' ? ' tab--on' : ''}`} onClick={() => setView('meetings')}>Réunions</button>
+          {progressOn && (
+            <button className={`tab${view === 'progress' ? ' tab--on' : ''}`} onClick={() => setView('progress')}>Progrès</button>
+          )}
         </nav>
         <span className="spacer" />
         <RecordingBar api={api} onError={setError} />
@@ -217,7 +243,9 @@ export function App() {
         </button>
       </header>
       {error && <div className="banner">{error}</div>}
-      {view === 'meetings' ? (
+      {view === 'progress' && progressOn ? (
+        <ProgressView api={api} />
+      ) : view === 'meetings' ? (
         <MeetingsView api={api} onError={setError} focusRequest={focusRequest} />
       ) : (
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={(e) => void onDragEnd(e)} onDragCancel={() => void reload()}>
@@ -248,6 +276,7 @@ export function App() {
         <DragOverlay>{dragged && <TaskCard task={dragged} overlay person={dragged.assignee_id ? peopleById.get(dragged.assignee_id) : undefined} />}</DragOverlay>
       </DndContext>
       )}
+      {party && <CelebrationToast value={party} onDone={() => setParty(null)} />}
       <footer className="foot">
         <span className="keys">
           <span><kbd>Échap</kbd> masquer</span>
@@ -279,10 +308,18 @@ export function App() {
           onAccept={async () => {
             await api.moveTask(editing.id, 'todo', board.todo.length)
             await reload()
+            void refreshProgress(true)
           }}
         />
       )}
-      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => {
+            setShowSettings(false)
+            void refreshProgress(false) // the Progress tab may have been turned on/off
+          }}
+        />
+      )}
     </div>
   )
 }

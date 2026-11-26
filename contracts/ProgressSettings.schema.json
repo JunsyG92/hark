@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/ProgressSettings.json",
+  "additionalProperties": false,
+  "properties": {
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "daily_goal": {
+      "default": 3,
+      "description": "Tasks to complete per day.",
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Daily Goal",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "enabled",
+    "daily_goal"
+  ],
+  "title": "ProgressSettings",
+  "type": "object"
+}

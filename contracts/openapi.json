@@ -760,6 +760,139 @@
         ]
       }
     },
+    "/v1/progress": {
+      "get": {
+        "summary": "Get Progress",
+        "operationId": "get_progress_v1_progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-(0[1-9]|1[0-2])$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Month"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressSummary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/settings/progress": {
+      "get": {
+        "summary": "Get Progress Settings",
+        "operationId": "get_progress_settings_v1_settings_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressSettings"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Progress Settings",
+        "operationId": "patch_progress_settings_v1_settings_progress_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProgressSettingsPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressSettings"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/v1/people": {
       "get": {
         "summary": "List People",
@@ -2003,6 +2136,45 @@
         ],
         "title": "AnalysisStatusInfo"
       },
+      "Badge": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "earned": {
+            "type": "boolean",
+            "title": "Earned"
+          },
+          "progress": {
+            "type": "integer",
+            "title": "Progress"
+          },
+          "target": {
+            "type": "integer",
+            "title": "Target"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description",
+          "earned",
+          "progress",
+          "target"
+        ],
+        "title": "Badge"
+      },
       "CloudKeyUpdate": {
         "properties": {
           "key": {
@@ -2122,6 +2294,54 @@
           "done"
         ],
         "title": "Column"
+      },
+      "CompletedToday": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "task_id",
+          "title",
+          "points"
+        ],
+        "title": "CompletedToday"
+      },
+      "DayStat": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "completed",
+          "points"
+        ],
+        "title": "DayStat"
       },
       "DetectionPhase": {
         "type": "string",
@@ -2751,6 +2971,35 @@
         "type": "object",
         "title": "LLMSettingsPatch"
       },
+      "Level": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "xp": {
+            "type": "integer",
+            "title": "Xp"
+          },
+          "level_start": {
+            "type": "integer",
+            "title": "Level Start"
+          },
+          "next_at": {
+            "type": "integer",
+            "title": "Next At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "level",
+          "xp",
+          "level_start",
+          "next_at"
+        ],
+        "title": "Level"
+      },
       "Meeting": {
         "properties": {
           "id": {
@@ -2980,6 +3229,51 @@
         ],
         "title": "ModelProfileId"
       },
+      "PeriodProgress": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "YYYY-MM for a month, YYYY for a year."
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "previous_completed": {
+            "type": "integer",
+            "title": "Previous Completed"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/DayStat"
+            },
+            "type": "array",
+            "title": "Days",
+            "description": "Only days with activity."
+          },
+          "goal_days": {
+            "type": "integer",
+            "title": "Goal Days",
+            "description": "Days in the period where the daily goal was reached."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "completed",
+          "points",
+          "previous_completed",
+          "days",
+          "goal_days"
+        ],
+        "title": "PeriodProgress"
+      },
       "Person": {
         "properties": {
           "id": {
@@ -3145,6 +3439,112 @@
           "yaml"
         ],
         "title": "ProfileUpdate"
+      },
+      "ProgressSettings": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          },
+          "daily_goal": {
+            "type": "integer",
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Daily Goal",
+            "description": "Tasks to complete per day.",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "daily_goal"
+        ],
+        "title": "ProgressSettings"
+      },
+      "ProgressSettingsPatch": {
+        "properties": {
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "daily_goal": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 20.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Goal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ProgressSettingsPatch"
+      },
+      "ProgressSummary": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "today": {
+            "$ref": "#/components/schemas/TodayProgress"
+          },
+          "streak": {
+            "$ref": "#/components/schemas/Streak"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "month": {
+            "$ref": "#/components/schemas/PeriodProgress"
+          },
+          "year": {
+            "$ref": "#/components/schemas/PeriodProgress"
+          },
+          "badges": {
+            "items": {
+              "$ref": "#/components/schemas/Badge"
+            },
+            "type": "array",
+            "title": "Badges"
+          },
+          "team": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberProgress"
+            },
+            "type": "array",
+            "title": "Team",
+            "description": "Team completions in the month (no points, no ranking)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "enabled",
+          "today",
+          "streak",
+          "level",
+          "month",
+          "year",
+          "badges",
+          "team"
+        ],
+        "title": "ProgressSummary"
       },
       "PromptAction": {
         "type": "string",
@@ -3441,6 +3841,25 @@
           "others"
         ],
         "title": "Speaker"
+      },
+      "Streak": {
+        "properties": {
+          "current": {
+            "type": "integer",
+            "title": "Current"
+          },
+          "best": {
+            "type": "integer",
+            "title": "Best"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current",
+          "best"
+        ],
+        "title": "Streak"
       },
       "Task": {
         "properties": {
@@ -3814,6 +4233,72 @@
         "additionalProperties": false,
         "type": "object",
         "title": "TaskUpdate"
+      },
+      "TeamMemberProgress": {
+        "properties": {
+          "person_id": {
+            "type": "string",
+            "title": "Person Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "person_id",
+          "name",
+          "completed"
+        ],
+        "title": "TeamMemberProgress"
+      },
+      "TodayProgress": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "goal": {
+            "type": "integer",
+            "title": "Goal"
+          },
+          "goal_reached": {
+            "type": "boolean",
+            "title": "Goal Reached"
+          },
+          "points": {
+            "type": "integer",
+            "title": "Points"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/CompletedToday"
+            },
+            "type": "array",
+            "title": "Tasks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "completed",
+          "goal",
+          "goal_reached",
+          "points",
+          "tasks"
+        ],
+        "title": "TodayProgress"
       },
       "TrackKind": {
         "type": "string",

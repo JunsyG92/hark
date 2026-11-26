@@ -579,11 +579,93 @@ class AnalysisStatusInfo(Strict):
     pull: DownloadStatus
 
 
+class ProgressSettings(Strict):
+    enabled: bool = True
+    daily_goal: int = Field(default=3, ge=1, le=20, description="Tasks to complete per day.")
+
+
+class ProgressSettingsPatch(Strict):
+    enabled: bool | None = None
+    daily_goal: int | None = Field(default=None, ge=1, le=20)
+
+
+class DayStat(Strict):
+    date: str
+    completed: int
+    points: int
+
+
+class CompletedToday(Strict):
+    task_id: str
+    title: str
+    points: int
+
+
+class TodayProgress(Strict):
+    date: str
+    completed: int
+    goal: int
+    goal_reached: bool
+    points: int
+    tasks: list[CompletedToday]
+
+
+class Streak(Strict):
+    current: int
+    best: int
+
+
+class Level(Strict):
+    level: int
+    xp: int
+    level_start: int
+    next_at: int
+
+
+class PeriodProgress(Strict):
+    key: str = Field(description="YYYY-MM for a month, YYYY for a year.")
+    completed: int
+    points: int
+    previous_completed: int
+    days: list[DayStat] = Field(description="Only days with activity.")
+    goal_days: int = Field(description="Days in the period where the daily goal was reached.")
+
+
+class Badge(Strict):
+    id: str
+    label: str
+    description: str
+    earned: bool
+    progress: int
+    target: int
+
+
+class TeamMemberProgress(Strict):
+    person_id: str
+    name: str
+    completed: int
+
+
+class ProgressSummary(Strict):
+    enabled: bool
+    today: TodayProgress
+    streak: Streak
+    level: Level
+    month: PeriodProgress
+    year: PeriodProgress
+    badges: list[Badge]
+    team: list[TeamMemberProgress] = Field(
+        description="Team completions in the month (no points, no ranking)."
+    )
+
+
 # name -> (model, schema mode). Inputs use "validation", outputs "serialization".
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
     "TaskProposal": (TaskProposal, "validation"),
     "Person": (Person, "serialization"),
+    "ProgressSummary": (ProgressSummary, "serialization"),
+    "ProgressSettings": (ProgressSettings, "serialization"),
     "EvidenceRef": (EvidenceRef, "serialization"),
     "Event": (Event, "serialization"),
     "DetectionSettings": (DetectionSettings, "serialization"),

@@ -45,6 +45,7 @@ pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --
   - `analysis/` — `chunking.py`, `prompts.py` (**changer un prompt ⇒ incrémenter `PROMPT_VERSION`**), `pipeline.py` (budget, parsing), `mine.py` (« me concernant »), `service.py` (file, cache par hash, création des tâches)
   - `profile.py` — `profile.yaml` (YAML sûr, validé) ; `net/guard.py` — garde réseau (loopback seulement) ; `export.py` — export Markdown (pur)
   - `store/people.py` — annuaire d'équipe (`match()` : rattachement non ambigu d'un nom entendu)
+  - `progress/` — gamification : `rules.py` (pur : points, niveaux, séries, badges), `service.py` (journal `activity`, résumés jour/mois/année) ; alimenté par `POST /v1/tasks/{id}/move`
   - `events.py` — bus d'événements interne
   - `auth.py` — token maître (keyring, repli fichier 0600)
   - `main.py` — point d'entrée sidecar (handshake stdout, logs sur stderr)

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnalysisSection } from './AnalysisSection'
 import { DetectionSection } from './DetectionSettings'
 import { RecordingSection } from './RecordingSection'
+import { ProgressSection } from './ProgressSection'
 import { TeamSection } from './TeamSection'
 import { TranscriptionSection } from './TranscriptionSection'
 
@@ -46,6 +47,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </label>
         {message && <p className="modal__source">{message}</p>}
         <TeamSection />
+        <ProgressSection />
         <DetectionSection />
         <RecordingSection />
         <TranscriptionSection />

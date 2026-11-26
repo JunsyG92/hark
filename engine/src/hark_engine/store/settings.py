@@ -11,6 +11,8 @@ from ..models import (
     DetectionSettingsPatch,
     LLMSettings,
     LLMSettingsPatch,
+    ProgressSettings,
+    ProgressSettingsPatch,
     RecordingSettings,
     RecordingSettingsPatch,
     TranscriptionSettings,
@@ -23,6 +25,7 @@ RECORDING_KEY = "recording"
 TRANSCRIPTION_KEY = "transcription"
 LLM_KEY = "llm"
 CLOUD_KEY = "cloud"
+PROGRESS_KEY = "progress"
 
 
 class SettingsRepository:
@@ -139,3 +142,21 @@ class SettingsRepository:
                 "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
                 (key, value),
             )
+
+    def get_progress(self) -> ProgressSettings:
+        with self.db.read() as conn:
+            row = conn.execute(
+                "SELECT value FROM settings WHERE key = ?", (PROGRESS_KEY,)
+            ).fetchone()
+        if row is None:
+            return ProgressSettings()
+        try:
+            return ProgressSettings.model_validate(json.loads(row["value"]))
+        except ValueError:
+            return ProgressSettings()
+
+    def patch_progress(self, patch: ProgressSettingsPatch) -> ProgressSettings:
+        merged = self.get_progress().model_copy(update=patch.model_dump(exclude_none=True))
+        validated = ProgressSettings.model_validate(merged.model_dump())
+        self._put(PROGRESS_KEY, validated.model_dump_json())
+        return validated

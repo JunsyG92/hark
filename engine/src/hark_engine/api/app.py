@@ -7,8 +7,9 @@ import tempfile
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -34,6 +35,9 @@ from ..models import (
     Person,
     PersonCreate,
     PersonUpdate,
+    ProgressSettings,
+    ProgressSettingsPatch,
+    ProgressSummary,
     PromptResponse,
     PromptResult,
     RecordingSettings,
@@ -52,6 +56,7 @@ from ..models import (
     TranscriptSegment,
 )
 from ..profile import ProfileStore
+from ..progress import ProgressService
 from ..record import Recorder, RecorderBusy
 from ..store import (
     AnalysisRepository,
@@ -126,6 +131,7 @@ def create_app(
     app.state.master_token = master_token
     tasks = TaskRepository(db)
     people = PeopleRepository(db)
+    progress = ProgressService(db, SettingsRepository(db))
     events = bus or EventBus()
     app.state.bus = events
     detection = detector or DetectorService(SettingsRepository(db), events)
@@ -210,6 +216,23 @@ def create_app(
         except PersonNotFound as exc:
             raise HTTPException(422, "unknown person") from exc
 
+    # ---- progress (gamification) ---------------------------------------------------
+    @app.get("/v1/progress", response_model=ProgressSummary)
+    def get_progress(
+        _: ReadScope,
+        month: Annotated[str | None, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")] = None,
+        year: Annotated[str | None, Query(pattern=r"^\d{4}$")] = None,
+    ) -> ProgressSummary:
+        return progress.summary(month=month, year=year)
+
+    @app.get("/v1/settings/progress", response_model=ProgressSettings)
+    def get_progress_settings(_: ReadScope) -> ProgressSettings:
+        return SettingsRepository(db).get_progress()
+
+    @app.patch("/v1/settings/progress", response_model=ProgressSettings)
+    def patch_progress_settings(body: ProgressSettingsPatch, _: UiScope) -> ProgressSettings:
+        return SettingsRepository(db).patch_progress(body)
+
     # ---- team directory ----------------------------------------------------------
     @app.get("/v1/people", response_model=list[Person])
     def list_people(_: ReadScope) -> list[Person]:
@@ -285,7 +308,9 @@ def create_app(
 
     @app.post("/v1/tasks/{task_id}/move", response_model=Task)
     def move_task(task_id: str, body: TaskMove, _: UiScope) -> Task:
+        before = tasks.get(task_id)
         task = tasks.move(task_id, body)
+        progress.on_move(before, task)  # gamification ledger (done / validated)
         events.publish(EventType.TASK_UPDATED, {"task": task.model_dump(mode="json")})
         return task
 

@@ -9,6 +9,8 @@ import type {
   ModelProfile,
   Person,
   Priority,
+  ProgressSettings,
+  ProgressSummary,
   RecordingSettings,
   RecordingStatus,
   SearchHit,
@@ -21,6 +23,8 @@ import type {
 
 export type {
   Person,
+  ProgressSettings,
+  ProgressSummary,
   Analysis,
   LLMModelProfile,
   LLMSettings,
@@ -122,6 +126,12 @@ export function createApi(transport: Transport) {
     createPerson: (p: PersonDraft) => call<Person>('POST', '/v1/people', p),
     updatePerson: (id: string, p: Partial<PersonDraft>) => call<Person>('PATCH', `/v1/people/${enc(id)}`, p),
     deletePerson: (id: string) => call<null>('DELETE', `/v1/people/${enc(id)}`),
+    progress: (q: { month?: string; year?: string } = {}) => {
+      const params = [q.month ? `month=${enc(q.month)}` : '', q.year ? `year=${enc(q.year)}` : ''].filter(Boolean).join('&')
+      return call<ProgressSummary>('GET', `/v1/progress${params ? `?${params}` : ''}`)
+    },
+    progressSettings: () => call<ProgressSettings>('GET', '/v1/settings/progress'),
+    patchProgressSettings: (patch: Partial<ProgressSettings>) => call<ProgressSettings>('PATCH', '/v1/settings/progress', patch),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
 }

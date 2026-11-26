@@ -130,6 +130,18 @@ ailleurs ») l'épingle pour qu'il reste affiché pendant que tu travailles. Les
 En cours, Fait) pour le **replier/déplier** : ton choix est mémorisé, et une colonne repliée accepte toujours qu'on y dépose
 une tâche. Le style (surfaces chaudes, accent terracotta, thème clair/sombre automatique) reprend celui d'[aska](https://github.com/JunsyG92/aska).
 
+## Progression (gamification)
+
+Onglet **Progrès** : **Jour** (objectif quotidien, 3 tâches par défaut, points du jour, tâches terminées), **Mois**
+(calendrier coloré, comparaison au mois précédent, tâches terminées par membre de l'équipe), **Année** (carte de chaleur des
+365 jours, meilleur mois, comparaison à l'année précédente), plus **niveau / XP**, **série** de jours consécutifs et
+**badges**. Terminer une tâche affiche une petite célébration (+points, objectif atteint, nouveau badge).
+
+Règles : 10 points par tâche **à toi** terminée (+5 si avant l'échéance, +5 si priorité haute), 2 points par proposition de
+l'IA traitée. Les tâches de l'équipe sont comptées à part, **sans points ni classement**. **Rien ne récompense
+l'enregistrement des réunions** (le consentement reste neutre). Remettre une tâche hors de « Fait » retire ses points.
+Désactivable et objectif réglable dans Réglages → Progression. Tout reste local.
+
 ## Équipe et suivi des tâches
 
 Réglages → **Équipe** : la liste des personnes de ton équipe (Prénom, Nom, e-mail ; une adresse = une personne).

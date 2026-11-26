@@ -279,6 +279,124 @@ export interface Person {
 }
 /**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "ProgressSettings".
+ */
+export interface ProgressSettings {
+  enabled: boolean;
+  /**
+   * Tasks to complete per day.
+   */
+  daily_goal: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Badge".
+ */
+export interface Badge {
+  id: string;
+  label: string;
+  description: string;
+  earned: boolean;
+  progress: number;
+  target: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "CompletedToday".
+ */
+export interface CompletedToday {
+  task_id: string;
+  title: string;
+  points: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "DayStat".
+ */
+export interface DayStat {
+  date: string;
+  completed: number;
+  points: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Level".
+ */
+export interface Level {
+  level: number;
+  xp: number;
+  level_start: number;
+  next_at: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "PeriodProgress".
+ */
+export interface PeriodProgress {
+  /**
+   * YYYY-MM for a month, YYYY for a year.
+   */
+  key: string;
+  completed: number;
+  points: number;
+  previous_completed: number;
+  /**
+   * Only days with activity.
+   */
+  days: DayStat[];
+  /**
+   * Days in the period where the daily goal was reached.
+   */
+  goal_days: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Streak".
+ */
+export interface Streak {
+  current: number;
+  best: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TeamMemberProgress".
+ */
+export interface TeamMemberProgress {
+  person_id: string;
+  name: string;
+  completed: number;
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "TodayProgress".
+ */
+export interface TodayProgress {
+  date: string;
+  completed: number;
+  goal: number;
+  goal_reached: boolean;
+  points: number;
+  tasks: CompletedToday[];
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "ProgressSummary".
+ */
+export interface ProgressSummary {
+  enabled: boolean;
+  today: TodayProgress;
+  streak: Streak;
+  level: Level;
+  month: PeriodProgress;
+  year: PeriodProgress;
+  badges: Badge[];
+  /**
+   * Team completions in the month (no points, no ranking).
+   */
+  team: TeamMemberProgress[];
+}
+/**
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "RecordingSettings".
  */
 export interface RecordingSettings {
