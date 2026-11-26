@@ -1,11 +1,12 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import type { Task } from '../lib/api'
+import type { Person, Task } from '../lib/api'
 import { sourceLabel } from '../lib/board'
+import { initials, personName } from '../lib/people'
 
 const PRIORITY_LABEL = { low: 'basse', normal: '', high: 'haute' } as const
 
-export function TaskCard({ task, onOpen, overlay = false }: { task: Task; onOpen?: (t: Task) => void; overlay?: boolean }) {
+export function TaskCard({ task, onOpen, overlay = false, person }: { task: Task; onOpen?: (t: Task) => void; overlay?: boolean; person?: Person }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id, disabled: overlay })
   const style = { transform: CSS.Transform.toString(transform), transition }
   const overdue = task.due && task.column !== 'done' && task.due < new Date().toISOString().slice(0, 10)
@@ -27,7 +28,14 @@ export function TaskCard({ task, onOpen, overlay = false }: { task: Task; onOpen
       <div className="card__meta">
         {task.is_mine && <span className="pill pill--mine">moi</span>}
         {task.priority !== 'normal' && <span className={`pill pill--${task.priority}`}>{PRIORITY_LABEL[task.priority]}</span>}
-        {task.assignee && <span className="card__assignee">@{task.assignee}</span>}
+        {person ? (
+          <span className="card__person" title={`${personName(person)}${person.email ? ` <${person.email}>` : ''}`}>
+            <span className="avatar" aria-hidden="true">{initials(person)}</span>
+            {personName(person)}
+          </span>
+        ) : (
+          task.assignee && <span className="card__assignee">@{task.assignee}</span>
+        )}
         {task.due && <span className={`card__due${overdue ? ' card__due--late' : ''}`}>{task.due}</span>}
         {task.source !== 'manual' && <span className="pill pill--source">{sourceLabel(task.source)}</span>}
       </div>

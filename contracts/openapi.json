@@ -499,6 +499,22 @@
               ],
               "title": "Source"
             }
+          },
+          {
+            "name": "assignee_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Assignee Id"
+            }
           }
         ],
         "responses": {
@@ -742,6 +758,163 @@
             "HTTPBearer": []
           }
         ]
+      }
+    },
+    "/v1/people": {
+      "get": {
+        "summary": "List People",
+        "operationId": "list_people_v1_people_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Person"
+                  },
+                  "type": "array",
+                  "title": "Response List People V1 People Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create Person",
+        "operationId": "create_person_v1_people_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Person"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/people/{person_id}": {
+      "patch": {
+        "summary": "Update Person",
+        "operationId": "update_person_v1_people__person_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Person Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PersonUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Person"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Person",
+        "operationId": "delete_person_v1_people__person_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "person_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Person Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/tasks/{task_id}/move": {
@@ -2807,6 +2980,110 @@
         ],
         "title": "ModelProfileId"
       },
+      "Person": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "email",
+          "created_at"
+        ],
+        "title": "Person",
+        "description": "A team member tasks can be assigned to (the lead's team directory)."
+      },
+      "PersonCreate": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "First Name",
+            "default": ""
+          },
+          "last_name": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Last Name",
+            "default": ""
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "title": "Email",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PersonCreate"
+      },
+      "PersonUpdate": {
+        "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 320
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "PersonUpdate"
+      },
       "Priority": {
         "type": "string",
         "enum": [
@@ -3235,6 +3512,18 @@
             "description": "Task concerns the user (profile match).",
             "default": false
           },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id",
+            "description": "Person from the team directory."
+          },
           "confidence": {
             "anyOf": [
               {
@@ -3273,6 +3562,7 @@
           "source",
           "evidence",
           "is_mine",
+          "assignee_id",
           "confidence",
           "created_at",
           "updated_at"
@@ -3298,6 +3588,18 @@
             "maxLength": 200,
             "title": "Assignee",
             "default": ""
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
           },
           "due": {
             "anyOf": [
@@ -3384,6 +3686,13 @@
             "$ref": "#/components/schemas/Priority",
             "default": "normal"
           },
+          "assignee_email": {
+            "type": "string",
+            "maxLength": 320,
+            "title": "Assignee Email",
+            "description": "Links the task to an existing team member (never creates one).",
+            "default": ""
+          },
           "evidence": {
             "anyOf": [
               {
@@ -3454,6 +3763,19 @@
               }
             ],
             "title": "Assignee"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{32}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id",
+            "description": "null clears the assignment."
           },
           "due": {
             "anyOf": [

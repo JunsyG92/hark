@@ -86,6 +86,13 @@
       "$ref": "#/$defs/Priority",
       "default": "normal"
     },
+    "assignee_email": {
+      "default": "",
+      "description": "Links the task to an existing team member (never creates one).",
+      "maxLength": 320,
+      "title": "Assignee Email",
+      "type": "string"
+    },
     "evidence": {
       "anyOf": [
         {

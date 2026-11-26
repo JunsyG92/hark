@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from .. import __version__
 from ..analysis import AnalysisService
+from ..analysis.mine import person_is_me
 from ..audio.source import AudioUnavailableError
 from ..detect import DetectorService
 from ..events import EventBus
@@ -30,6 +31,9 @@ from ..models import (
     MeetingTitleUpdate,
     ModelDownloadRequest,
     ModelProfile,
+    Person,
+    PersonCreate,
+    PersonUpdate,
     PromptResponse,
     PromptResult,
     RecordingSettings,
@@ -52,11 +56,15 @@ from ..record import Recorder, RecorderBusy
 from ..store import (
     AnalysisRepository,
     Database,
+    DuplicateEmail,
     MeetingNotFound,
     MeetingRepository,
+    PeopleRepository,
+    PersonNotFound,
     SettingsRepository,
     TaskNotFound,
     TaskRepository,
+    full_name,
 )
 from ..stt import PROFILES, ModelManager, TranscriptionService, has_cuda, recommend, total_ram_gb
 from .analysis_routes import add_analysis_routes
@@ -117,6 +125,7 @@ def create_app(
     app.add_middleware(LoopbackGuard)
     app.state.master_token = master_token
     tasks = TaskRepository(db)
+    people = PeopleRepository(db)
     events = bus or EventBus()
     app.state.bus = events
     detection = detector or DetectorService(SettingsRepository(db), events)
@@ -170,9 +179,12 @@ def create_app(
 
     @app.get("/v1/tasks", response_model=list[Task])
     def list_tasks(
-        _: ReadScope, column: Column | None = None, source: str | None = None
+        _: ReadScope,
+        column: Column | None = None,
+        source: str | None = None,
+        assignee_id: str | None = None,
     ) -> list[Task]:
-        return tasks.list(column=column, source=source)
+        return tasks.list(column=column, source=source, assignee_id=assignee_id)
 
     @app.get("/v1/tasks/{task_id}", response_model=Task)
     def get_task(task_id: str, _: ReadScope) -> Task:
@@ -180,19 +192,93 @@ def create_app(
 
     @app.post("/v1/tasks/propose", response_model=Task, status_code=status.HTTP_201_CREATED)
     def propose_task(body: TaskProposal, who: ProposeScope) -> Task:
-        task = tasks.propose(body, source=who.source)
+        person = people.find_by_email(body.assignee_email)  # links, never creates
+        if person is not None and not body.assignee:
+            body = body.model_copy(update={"assignee": full_name(person)})
+        task = tasks.propose(
+            body,
+            source=who.source,
+            assignee_id=person.id if person else None,
+            is_mine=bool(person and person_is_me(person, profiles.load())),
+        )
         events.publish(EventType.TASK_PROPOSED, {"task": task.model_dump(mode="json")})
         return task
+
+    def _person_or_422(person_id: str) -> Person:
+        try:
+            return people.get(person_id)
+        except PersonNotFound as exc:
+            raise HTTPException(422, "unknown person") from exc
+
+    # ---- team directory ----------------------------------------------------------
+    @app.get("/v1/people", response_model=list[Person])
+    def list_people(_: ReadScope) -> list[Person]:
+        return people.list()
+
+    @app.post("/v1/people", response_model=Person, status_code=status.HTTP_201_CREATED)
+    def create_person(body: PersonCreate, _: UiScope) -> Person:
+        try:
+            person = people.create(body)
+        except DuplicateEmail as exc:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "cette adresse e-mail existe déjà"
+            ) from exc
+        # the kanban refreshes on task.* events: a new team member must show up there too
+        events.publish(EventType.TASK_UPDATED, {"person_id": person.id})
+        return person
+
+    @app.patch("/v1/people/{person_id}", response_model=Person)
+    def update_person(person_id: str, body: PersonUpdate, _: UiScope) -> Person:
+        try:
+            person = people.update(person_id, body)
+        except PersonNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "person not found") from exc
+        except DuplicateEmail as exc:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, "cette adresse e-mail existe déjà"
+            ) from exc
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        events.publish(EventType.TASK_UPDATED, {"person_id": person_id})
+        return person
+
+    @app.delete("/v1/people/{person_id}", status_code=status.HTTP_204_NO_CONTENT)
+    def delete_person(person_id: str, _: UiScope) -> Response:
+        try:
+            people.delete(person_id)
+        except PersonNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "person not found") from exc
+        events.publish(EventType.TASK_UPDATED, {"person_id": person_id, "deleted": True})
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     # ---- desktop app only (ui scope) -------------------------------------------
     @app.post("/v1/tasks", response_model=Task, status_code=status.HTTP_201_CREATED)
     def create_task(body: TaskCreate, _: UiScope) -> Task:
-        task = tasks.create(body)
+        mine = False
+        if body.assignee_id is not None:
+            person = _person_or_422(body.assignee_id)
+            body = body.model_copy(update={"assignee": full_name(person)})
+            mine = person_is_me(person, profiles.load())
+        task = tasks.create(body, is_mine=mine)
         events.publish(EventType.TASK_UPDATED, {"task": task.model_dump(mode="json")})
         return task
 
     @app.patch("/v1/tasks/{task_id}", response_model=Task)
     def update_task(task_id: str, body: TaskUpdate, _: UiScope) -> Task:
+        tasks.get(task_id)  # 404 first
+        if "assignee_id" in body.model_fields_set:
+            extra: dict[str, object] = {}
+            if body.assignee_id is None:  # unassign
+                if "assignee" not in body.model_fields_set:
+                    extra["assignee"] = ""
+            else:
+                person = _person_or_422(body.assignee_id)
+                extra["assignee"] = full_name(person)
+                if "is_mine" not in body.model_fields_set:
+                    extra["is_mine"] = person_is_me(person, profiles.load())
+            body = TaskUpdate.model_validate(
+                {**body.model_dump(exclude_unset=True, mode="json"), **extra}
+            )
         task = tasks.update(task_id, body)
         events.publish(EventType.TASK_UPDATED, {"task": task.model_dump(mode="json")})
         return task

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { Priority, Task, TaskPatch } from '../lib/api'
+import type { Person, PersonDraft, Priority, Task, TaskPatch } from '../lib/api'
 import { sourceLabel } from '../lib/board'
+import { PersonPicker } from './PersonPicker'
 
 interface Props {
   task: Task
@@ -9,12 +10,15 @@ interface Props {
   onAccept: () => Promise<void>
   onClose: () => void
   onOpenEvidence?: (meetingId: string, startMs: number) => void
+  people?: Person[]
+  onCreatePerson?: (draft: PersonDraft) => Promise<Person>
 }
 
-export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEvidence }: Props) {
+export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEvidence, people = [], onCreatePerson }: Props) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [assignee, setAssignee] = useState(task.assignee)
+  const [assigneeId, setAssigneeId] = useState<string | null>(task.assignee_id)
   const [due, setDue] = useState(task.due ?? '')
   const [priority, setPriority] = useState<Priority>(task.priority)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +30,10 @@ export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEv
     e.preventDefault()
     if (!title.trim()) return setError('Le titre est obligatoire')
     try {
-      await onSave({ title: title.trim(), description, assignee: assignee.trim(), due: due || null, priority })
+      const patch: TaskPatch = { title: title.trim(), description, due: due || null, priority }
+      if (assigneeId !== task.assignee_id) patch.assignee_id = assigneeId // the engine sets the name
+      else if (!assigneeId) patch.assignee = assignee.trim()
+      await onSave(patch)
       onClose()
     } catch (err) {
       setError(String((err as Error).message))
@@ -41,7 +48,18 @@ export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEv
         <div className="modal__row">
           <label>
             Assigné
-            <input value={assignee} maxLength={200} onChange={(e) => setAssignee(e.target.value)} />
+            <PersonPicker
+              people={people}
+              value={assigneeId}
+              onChange={(id) => {
+                setAssigneeId(id)
+                if (!id) setAssignee('')
+              }}
+              onCreate={onCreatePerson ?? (async () => Promise.reject(new Error('indisponible')))}
+            />
+            {!assigneeId && (
+              <input value={assignee} maxLength={200} placeholder="ou un nom libre" aria-label="Assigné (texte libre)" onChange={(e) => setAssignee(e.target.value)} />
+            )}
           </label>
           <label>
             Échéance

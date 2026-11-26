@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnalysisSection } from './AnalysisSection'
 import { DetectionSection } from './DetectionSettings'
 import { RecordingSection } from './RecordingSection'
+import { TeamSection } from './TeamSection'
 import { TranscriptionSection } from './TranscriptionSection'
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
@@ -38,6 +39,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           Lancer Hark au démarrage de la session
         </label>
         {message && <p className="modal__source">{message}</p>}
+        <TeamSection />
         <DetectionSection />
         <RecordingSection />
         <TranscriptionSection />

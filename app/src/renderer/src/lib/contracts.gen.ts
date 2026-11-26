@@ -265,6 +265,19 @@ export interface ModelProfile {
   recommended: boolean;
 }
 /**
+ * A team member tasks can be assigned to (the lead's team directory).
+ *
+ * This interface was referenced by `HarkContracts`'s JSON-Schema
+ * via the `definition` "Person".
+ */
+export interface Person {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  created_at: string;
+}
+/**
  * This interface was referenced by `HarkContracts`'s JSON-Schema
  * via the `definition` "RecordingSettings".
  */
@@ -329,6 +342,10 @@ export interface Task {
    * Task concerns the user (profile match).
    */
   is_mine: boolean;
+  /**
+   * Person from the team directory.
+   */
+  assignee_id: string | null;
   confidence: number | null;
   created_at: string;
   updated_at: string;
@@ -345,6 +362,10 @@ export interface TaskProposal {
   assignee?: string;
   due?: string | null;
   priority?: Priority;
+  /**
+   * Links the task to an existing team member (never creates one).
+   */
+  assignee_email?: string;
   evidence?: EvidenceRef | null;
   confidence?: number | null;
 }

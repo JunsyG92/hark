@@ -7,7 +7,7 @@ function task(column: Task['column'], position: number, extra: Partial<Task> = {
   n += 1
   return {
     id: `t${n}`, title: `T${n}`, description: '', assignee: '', due: null, priority: 'normal',
-    column, position, source: 'manual', evidence: null, is_mine: false, confidence: null,
+    column, position, source: 'manual', evidence: null, is_mine: false, assignee_id: null, confidence: null,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', ...extra,
   }
 }

@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 
-from ..models import Speaker, TranscriptSegment, UserProfile
+from ..models import Person, Speaker, TranscriptSegment, UserProfile
 
 SELF_WORDS = {"moi", "me", "je", "moi-meme", "myself", "i", "self"}
 # Said by the user on the microphone track: a commitment to do something.
@@ -58,3 +58,11 @@ def is_mine(
         and any(phrase in normalize(seg.text) for phrase in COMMIT_PHRASES)
         for seg in segments
     )
+
+
+def person_is_me(person: Person, profile: UserProfile) -> bool:
+    """A directory entry that is the user themself (same e-mail, or same full name)."""
+    if profile.email and person.email and person.email.lower() == profile.email.lower():
+        return True
+    full = normalize(" ".join(x for x in (person.first_name, person.last_name) if x))
+    return bool(full) and full == normalize(profile.name)

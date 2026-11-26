@@ -131,6 +131,19 @@
       "title": "Is Mine",
       "type": "boolean"
     },
+    "assignee_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Person from the team directory.",
+      "title": "Assignee Id"
+    },
     "confidence": {
       "anyOf": [
         {
@@ -168,6 +181,7 @@
     "source",
     "evidence",
     "is_mine",
+    "assignee_id",
     "confidence",
     "created_at",
     "updated_at"

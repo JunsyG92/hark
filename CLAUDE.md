@@ -44,6 +44,7 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
   - `llm/` — `provider.py` (interface + fournisseur factice), `ollama.py` (local), `cloud.py` (désactivé par défaut), `profiles.py`, `factory.py`
   - `analysis/` — `chunking.py`, `prompts.py` (**changer un prompt ⇒ incrémenter `PROMPT_VERSION`**), `pipeline.py` (budget, parsing), `mine.py` (« me concernant »), `service.py` (file, cache par hash, création des tâches)
   - `profile.py` — `profile.yaml` (YAML sûr, validé) ; `net/guard.py` — garde réseau (loopback seulement) ; `export.py` — export Markdown (pur)
+  - `store/people.py` — annuaire d'équipe (`match()` : rattachement non ambigu d'un nom entendu)
   - `events.py` — bus d'événements interne
   - `auth.py` — token maître (keyring, repli fichier 0600)
   - `main.py` — point d'entrée sidecar (handshake stdout, logs sur stderr)

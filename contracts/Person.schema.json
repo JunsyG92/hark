@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hark://contracts/Person.json",
+  "additionalProperties": false,
+  "description": "A team member tasks can be assigned to (the lead's team directory).",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "first_name": {
+      "title": "First Name",
+      "type": "string"
+    },
+    "last_name": {
+      "title": "Last Name",
+      "type": "string"
+    },
+    "email": {
+      "title": "Email",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "first_name",
+    "last_name",
+    "email",
+    "created_at"
+  ],
+  "title": "Person",
+  "type": "object"
+}

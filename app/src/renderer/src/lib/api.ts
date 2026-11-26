@@ -7,6 +7,7 @@ import type {
   LLMSettings,
   Meeting,
   ModelProfile,
+  Person,
   Priority,
   RecordingSettings,
   RecordingStatus,
@@ -19,6 +20,7 @@ import type {
 } from './contracts.gen'
 
 export type {
+  Person,
   Analysis,
   LLMModelProfile,
   LLMSettings,
@@ -41,12 +43,19 @@ export interface TaskDraft {
   title: string
   description?: string
   assignee?: string
+  assignee_id?: string | null
   due?: string | null
   priority?: Priority
   column?: Column
 }
 
-export type TaskPatch = Partial<Pick<Task, 'title' | 'description' | 'assignee' | 'due' | 'priority' | 'is_mine'>>
+export type TaskPatch = Partial<Pick<Task, 'title' | 'description' | 'assignee' | 'assignee_id' | 'due' | 'priority' | 'is_mine'>>
+
+export interface PersonDraft {
+  first_name: string
+  last_name: string
+  email: string
+}
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly detail: unknown) {
@@ -109,6 +118,10 @@ export function createApi(transport: Transport) {
     cloudSettings: () => call<CloudSettingsView>('GET', '/v1/settings/cloud'),
     patchCloudSettings: (patch: Partial<CloudSettingsView>) => call<CloudSettingsView>('PATCH', '/v1/settings/cloud', patch),
     saveCloudKey: (key: string) => call<null>('PUT', '/v1/settings/cloud/key', { key }),
+    people: () => call<Person[]>('GET', '/v1/people'),
+    createPerson: (p: PersonDraft) => call<Person>('POST', '/v1/people', p),
+    updatePerson: (id: string, p: Partial<PersonDraft>) => call<Person>('PATCH', `/v1/people/${enc(id)}`, p),
+    deletePerson: (id: string) => call<null>('DELETE', `/v1/people/${enc(id)}`),
     deleteTask: (id: string) => call<null>('DELETE', `/v1/tasks/${encodeURIComponent(id)}`),
   }
 }

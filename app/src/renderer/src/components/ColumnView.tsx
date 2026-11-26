@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useState, type KeyboardEvent } from 'react'
-import type { Column, Task } from '../lib/api'
+import type { Column, Person, Task } from '../lib/api'
 import { TaskCard } from './TaskCard'
 
 interface Props {
@@ -11,9 +11,10 @@ interface Props {
   tasks: Task[]
   onOpen: (t: Task) => void
   onCreate: (column: Column, title: string) => Promise<void>
+  people?: Map<string, Person>
 }
 
-export function ColumnView({ id, label, hint, tasks, onOpen, onCreate }: Props) {
+export function ColumnView({ id, label, hint, tasks, onOpen, onCreate, people }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const [draft, setDraft] = useState('')
 
@@ -40,7 +41,7 @@ export function ColumnView({ id, label, hint, tasks, onOpen, onCreate }: Props) 
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="column__list">
           {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} onOpen={onOpen} />
+            <TaskCard key={t.id} task={t} onOpen={onOpen} person={t.assignee_id ? people?.get(t.assignee_id) : undefined} />
           ))}
         </div>
       </SortableContext>

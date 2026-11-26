@@ -7,7 +7,7 @@ import type { Task } from '../src/renderer/src/lib/contracts.gen'
 function fakeTask(over: Partial<Task>): Task {
   return {
     id: 'a', title: 'Préparer le budget Q1', description: '', assignee: 'Moi', due: null, priority: 'high',
-    column: 'to_validate', position: 0, source: 'meeting:m1', evidence: null, is_mine: true, confidence: 0.8,
+    column: 'to_validate', position: 0, source: 'meeting:m1', evidence: null, is_mine: true, assignee_id: null, confidence: 0.8,
     created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z', ...over,
   }
 }

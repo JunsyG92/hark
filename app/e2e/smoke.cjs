@@ -79,6 +79,18 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   const hidden = await app.evaluate(({ BrowserWindow }) =>
     !BrowserWindow.getAllWindows().some((w) => w.webContents.getURL().includes('toast.html') && w.isVisible()))
   if (!hidden) throw new Error('toast still visible after answer')
+  // --- team follow-up: assign a task to a person (first name, last name, e-mail) and filter by person
+  const inès = (await call('POST', '/v1/people', { first_name: 'Inès', last_name: 'Roy', email: 'ines@example.com' })).body
+  await win.locator('[data-testid=task-card]', { hasText: 'Préparer la démo client' }).click()
+  await win.selectOption('select[aria-label="Assigné à"]', inès.id)
+  await win.click('.modal button[type=submit]')
+  await win.waitForSelector('[data-testid=task-card]:has-text("Préparer la démo client") .avatar:has-text("IR")')
+  await win.selectOption('select[aria-label="Filtrer les tâches"]', 'person:' + inès.id)
+  const filtered = await win.locator('[data-testid=task-card]').allTextContents()
+  if (filtered.length !== 1 || !filtered[0].includes('Préparer la démo client')) throw new Error('person filter failed: ' + JSON.stringify(filtered))
+  await win.selectOption('select[aria-label="Filtrer les tâches"]', 'all')
+  const assignedTask = (await call('GET', '/v1/tasks?assignee_id=' + inès.id)).body
+  if (assignedTask.length !== 1 || assignedTask[0].assignee !== 'Inès Roy') throw new Error('assignment not saved')
   // --- recording (step 3) with synthetic audio: explicit click, overlay, title, stop, FLAC files
   const overlayWin = () => app.windows().find((x) => x.url().includes('overlay.html'))
   const overlayVisible = () => app.evaluate(({ BrowserWindow }) =>

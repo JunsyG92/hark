@@ -34,9 +34,16 @@ from ..models import (
     TranscriptSegment,
 )
 from ..profile import ProfileStore, profile_hash
-from ..store import AnalysisRepository, MeetingRepository, SettingsRepository, TaskRepository
+from ..store import (
+    AnalysisRepository,
+    MeetingRepository,
+    PeopleRepository,
+    SettingsRepository,
+    TaskRepository,
+    full_name,
+)
 from .chunking import transcript_text
-from .mine import is_mine, normalize
+from .mine import is_mine, normalize, person_is_me
 from .pipeline import BudgetExceeded, InvalidOutput, parse_due, parse_timestamp, run_pipeline
 from .prompts import PROMPT_VERSION
 
@@ -87,6 +94,7 @@ class AnalysisService:
     ) -> None:
         self._meetings, self._analyses, self._tasks = meetings, analyses, tasks
         self._settings, self._bus, self._profile = settings, bus, profile
+        self._people = PeopleRepository(tasks.db)
         self._factory = provider_factory
         self._queue: queue.Queue[str | None] = queue.Queue()
         self._lock = threading.Lock()
@@ -284,6 +292,9 @@ class AnalysisService:
             ms = parse_timestamp(item.evidence_timestamp)
             seg = locate(segments, ms)
             mine = is_mine(item.assignee, seg.start_ms if seg else ms, segments, profile)
+            person = self._people.match(item.assignee)  # only an unambiguous match is linked
+            if person is not None and person_is_me(person, profile):
+                mine = True
             evidence = (
                 EvidenceRef(meeting_id=meeting_id, start_ms=seg.start_ms, end_ms=seg.end_ms)
                 if seg
@@ -297,13 +308,14 @@ class AnalysisService:
                 TaskProposal(
                     title=item.title,
                     description=description[:2000],
-                    assignee=item.assignee,
+                    assignee=full_name(person) if person else item.assignee,
                     due=parse_due(item.due),
                     evidence=evidence,
                     confidence=item.confidence,
                 ),
                 source=source,
                 is_mine=mine,
+                assignee_id=person.id if person else None,
             )
             existing.add(key)
             created += 1

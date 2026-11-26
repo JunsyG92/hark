@@ -10,7 +10,14 @@ from datetime import date, datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 SOURCE_PATTERN = r"^(manual|meeting:[A-Za-z0-9_-]{1,64}|plugin:[a-z0-9][a-z0-9-]{0,63})$"
 
@@ -24,6 +31,58 @@ class Strict(BaseModel):
     # Fields with defaults are always present in responses: mark them required
     # in serialization schemas so generated client types are precise.
     model_config = ConfigDict(extra="forbid", json_schema_serialization_defaults_required=True)
+
+
+EMAIL_PATTERN = r"^[^@\s]{1,64}@[^@\s]{1,255}\.[^@\s]{1,63}$"
+PersonId = Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{32}$")]
+Name = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+Email = Annotated[str, StringConstraints(strip_whitespace=True, to_lower=True, max_length=320)]
+
+
+def _check_email(value: str) -> str:
+    import re
+
+    if value and not re.match(EMAIL_PATTERN, value):
+        raise ValueError("adresse e-mail invalide")
+    return value
+
+
+class Person(Strict):
+    """A team member tasks can be assigned to (the lead's team directory)."""
+
+    id: str
+    first_name: str
+    last_name: str
+    email: str
+    created_at: datetime
+
+
+class PersonCreate(Strict):
+    first_name: Name = ""
+    last_name: Name = ""
+    email: Email = ""
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v: str) -> str:
+        return _check_email(v)
+
+    @model_validator(mode="after")
+    def _named(self) -> PersonCreate:
+        if not (self.first_name or self.last_name):
+            raise ValueError("prénom ou nom obligatoire")
+        return self
+
+
+class PersonUpdate(Strict):
+    first_name: Name | None = None
+    last_name: Name | None = None
+    email: Email | None = None
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, v: str | None) -> str | None:
+        return _check_email(v) if v is not None else v
 
 
 class Column(StrEnum):
@@ -59,6 +118,7 @@ class Task(Strict):
     source: Source = Field(description="manual | meeting:<id> | plugin:<name>")
     evidence: EvidenceRef | None = None
     is_mine: bool = Field(default=False, description="Task concerns the user (profile match).")
+    assignee_id: str | None = Field(default=None, description="Person from the team directory.")
     confidence: float | None = Field(default=None, ge=0, le=1)
     created_at: datetime
     updated_at: datetime
@@ -70,6 +130,7 @@ class TaskCreate(Strict):
     title: Title
     description: LongText = ""
     assignee: ShortText = ""
+    assignee_id: PersonId | None = None
     due: date | None = None
     priority: Priority = Priority.NORMAL
     column: Column = Column.TODO
@@ -79,6 +140,7 @@ class TaskUpdate(Strict):
     title: Title | None = None
     description: LongText | None = None
     assignee: ShortText | None = None
+    assignee_id: PersonId | None = Field(default=None, description="null clears the assignment.")
     due: date | None = None
     priority: Priority | None = None
     is_mine: bool | None = None
@@ -97,6 +159,9 @@ class TaskProposal(Strict):
     assignee: ShortText = ""
     due: date | None = None
     priority: Priority = Priority.NORMAL
+    assignee_email: Email = Field(
+        default="", description="Links the task to an existing team member (never creates one)."
+    )
     evidence: EvidenceRef | None = None
     confidence: float | None = Field(default=None, ge=0, le=1)
 
@@ -518,6 +583,7 @@ class AnalysisStatusInfo(Strict):
 CONTRACT_MODELS: dict[str, tuple[type[BaseModel], Literal["validation", "serialization"]]] = {
     "Task": (Task, "serialization"),
     "TaskProposal": (TaskProposal, "validation"),
+    "Person": (Person, "serialization"),
     "EvidenceRef": (EvidenceRef, "serialization"),
     "Event": (Event, "serialization"),
     "DetectionSettings": (DetectionSettings, "serialization"),

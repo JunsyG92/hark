@@ -19,7 +19,8 @@ Hark est une application de bureau **locale** :
 | 2 | Détection audio + notification de consentement (sans enregistrement) | ✅ |
 | 3 | Enregistrement deux pistes + fin de réunion | ✅ |
 | 4 | Transcription locale + historique + recherche + export Markdown | ✅ |
-| 4b | Voix → personnes (nom + mail) | ⏳ |
+| 4b | Équipe (Prénom, Nom, mail) + assignation + filtre par personne | ✅ |
+| 4c | Voix → personnes (reconnaissance des voix) | ⏳ |
 | 5 | Analyse LLM + « À valider » + profil + budget tokens | ✅ |
 | 6 | API locale complète + webhooks + MCP + plugin d'exemple | ⏳ |
 | 7 | Skill `plug-tools` + templates + `scripts/check-plugin` | ⏳ |
@@ -120,6 +121,16 @@ n'est **jamais** ré-analysée (cache par hash). Seul un clic sur « Ré-analyse
 
 **Fournisseur cloud** : désactivé par défaut. Il ne s'active que si tu coches explicitement que le texte de tes réunions
 quittera ta machine, fournis une clé (rangée dans le gestionnaire d'identifiants) et le sélectionnes.
+
+## Équipe et suivi des tâches
+
+Réglages → **Équipe** : la liste des personnes de ton équipe (Prénom, Nom, e-mail ; une adresse = une personne).
+Dans une tâche, « Assigné à » propose ces personnes, ou « + Ajouter une personne… » pour la créer à la volée.
+Le kanban se filtre en haut : **Toutes / Mes tâches / Non assignées / chaque membre** (avec son nombre de tâches ouvertes) ;
+une tâche créée pendant que tu filtres sur quelqu'un lui est assignée. Quand l'IA entend un prénom qui correspond à **une
+seule** personne de la liste, la tâche lui est reliée (toujours dans « À valider ») ; en cas d'ambiguïté, rien n'est deviné.
+Mets-toi aussi dans la liste avec l'e-mail de ton profil : ce qui t'est assigné est alors marqué « moi ».
+Les intégrations peuvent relier une tâche proposée à un membre existant via `assignee_email` (jamais en créer).
 
 ## Configuration
 

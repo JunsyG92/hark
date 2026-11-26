@@ -142,3 +142,15 @@ mark { background: color-mix(in srgb, var(--accent) 30%, transparent); color: in
 .detail__summary { white-space: pre-line; margin: 4px 0; }
 .detail__analysis { border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px 8px; background: var(--card); }
 .detail__analysis ul { margin: 2px 0 6px; padding-left: 18px; }
+.filterbar { display: flex; align-items: center; gap: 8px; padding: 10px 16px 0; }
+.filterbar__label { flex-direction: row; align-items: center; gap: 8px; }
+.avatar { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--text); font-size: 10px; font-weight: 600; flex: none; }
+.card__person { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
+.picker { display: flex; flex-direction: column; gap: 6px; }
+.picker__new { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.picker__new input { flex: 1 1 110px; min-width: 0; }
+.team { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.team__row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.team__row input { flex: 1 1 120px; min-width: 0; }
+.team__name { font-weight: 500; }
+.team__mail { color: var(--muted); font-size: 12px; flex: 1; }

@@ -48,6 +48,7 @@ def _row_to_task(row: sqlite3.Row) -> Task:
         source=row["source"],
         evidence=evidence,
         is_mine=bool(row["is_mine"]),
+        assignee_id=row["assignee_id"],
         confidence=row["confidence"],
         created_at=datetime.fromisoformat(row["created_at"]),
         updated_at=datetime.fromisoformat(row["updated_at"]),
@@ -59,9 +60,17 @@ class TaskRepository:
         self.db = db
 
     # ---- reads -----------------------------------------------------------------
-    def list(self, column: Column | None = None, source: str | None = None) -> list[Task]:
+    def list(
+        self,
+        column: Column | None = None,
+        source: str | None = None,
+        assignee_id: str | None = None,
+    ) -> list[Task]:
         clauses: list[str] = []
         params: list[Any] = []
+        if assignee_id is not None:
+            clauses.append("assignee_id = ?")
+            params.append(assignee_id)
         if column is not None:
             clauses.append('"column" = ?')
             params.append(column.value)
@@ -94,6 +103,7 @@ class TaskRepository:
         evidence: EvidenceRef | None = None,
         is_mine: bool = False,
         confidence: float | None = None,
+        assignee_id: str | None = None,
     ) -> Task:
         task_id = uuid.uuid4().hex
         now = _now()
@@ -105,8 +115,8 @@ class TaskRepository:
             conn.execute(
                 """INSERT INTO tasks (id, title, description, assignee, due, priority, "column",
                        position, source, evidence_meeting_id, evidence_start_ms, evidence_end_ms,
-                       is_mine, confidence, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       is_mine, confidence, created_at, updated_at, assignee_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     task_id,
                     title,
@@ -124,11 +134,12 @@ class TaskRepository:
                     confidence,
                     now,
                     now,
+                    assignee_id,
                 ),
             )
         return self.get(task_id)
 
-    def create(self, data: TaskCreate) -> Task:
+    def create(self, data: TaskCreate, *, is_mine: bool = False) -> Task:
         return self._insert(
             title=data.title,
             description=data.description,
@@ -137,9 +148,18 @@ class TaskRepository:
             priority=data.priority,
             column=data.column,
             source="manual",
+            assignee_id=data.assignee_id,
+            is_mine=is_mine,
         )
 
-    def propose(self, data: TaskProposal, *, source: str, is_mine: bool = False) -> Task:
+    def propose(
+        self,
+        data: TaskProposal,
+        *,
+        source: str,
+        is_mine: bool = False,
+        assignee_id: str | None = None,
+    ) -> Task:
         """Integrations / AI only ever land in `to_validate`."""
         return self._insert(
             title=data.title,
@@ -152,6 +172,7 @@ class TaskRepository:
             evidence=data.evidence,
             is_mine=is_mine,
             confidence=data.confidence,
+            assignee_id=assignee_id,
         )
 
     def update(self, task_id: str, data: TaskUpdate) -> Task:

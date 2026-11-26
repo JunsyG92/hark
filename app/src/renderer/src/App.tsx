@@ -18,12 +18,18 @@ import { RecordingBar } from './components/RecordingBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { TaskCard } from './components/TaskCard'
 import { TaskEditor } from './components/TaskEditor'
-import { createApi, type Column, type Task } from './lib/api'
+import { createApi, type Column, type Person, type PersonDraft, type Task } from './lib/api'
+import { filterTasks, openCounts, parseFilter, personName, type TaskFilter } from './lib/people'
 import { COLUMNS, findTask, groupTasks, moveInBoard, resolveDropTarget, type Board } from './lib/board'
 
 export function App() {
   const api = useMemo(() => createApi(window.hark.api), [])
   const [board, setBoard] = useState<Board>(() => groupTasks([]))
+  const [allTasks, setAllTasks] = useState<Task[]>([])
+  const [people, setPeople] = useState<Person[]>([])
+  const [filter, setFilterState] = useState<TaskFilter>('all')
+  const peopleById = useMemo(() => new Map(people.map((p) => [p.id, p])), [people])
+  const counts = useMemo(() => openCounts(allTasks), [allTasks])
   const [editing, setEditing] = useState<Task | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [view, setView] = useState<'kanban' | 'meetings'>('kanban')
@@ -34,7 +40,11 @@ export function App() {
 
   const reload = useCallback(async () => {
     try {
-      setBoard(groupTasks(await api.listTasks()))
+      const [tasks, team] = await Promise.all([api.listTasks(), api.people().catch(() => [] as Person[])])
+      setAllTasks(tasks)
+      setPeople(team)
+      setFilterState((f) => parseFilter(f, team))
+      setBoard(groupTasks(tasks))
       setError(null)
     } catch (err) {
       setError(`Moteur injoignable : ${(err as Error).message}`)
@@ -105,9 +115,41 @@ export function App() {
   }
 
   async function create(column: Column, title: string) {
-    await api.createTask({ title, column })
+    // creating while filtered on a person assigns the new task to that person
+    const assignee_id = filter.startsWith('person:') ? filter.slice('person:'.length) : undefined
+    await api.createTask({ title, column, ...(assignee_id ? { assignee_id } : {}) })
     await reload()
   }
+
+  function setFilter(next: TaskFilter) {
+    setFilterState(next)
+    try {
+      localStorage.setItem('hark.filter', next)
+    } catch {
+      /* storage unavailable: the filter just isn't remembered */
+    }
+  }
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('hark.filter')
+      if (saved) setFilterState(saved as TaskFilter)
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  async function createPerson(draft: PersonDraft): Promise<Person> {
+    const person = await api.createPerson(draft)
+    setPeople((p) => [...p, person])
+    return person
+  }
+
+  const visible = useMemo(() => {
+    if (filter === 'all') return board
+    const keep = new Set(filterTasks(allTasks, filter).map((t) => t.id))
+    return Object.fromEntries(Object.entries(board).map(([c, ts]) => [c, ts.filter((t) => keep.has(t.id))])) as Board
+  }, [board, allTasks, filter])
 
   return (
     <div className="app">
@@ -129,12 +171,32 @@ export function App() {
         <MeetingsView api={api} onError={setError} focusRequest={focusRequest} />
       ) : (
       <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={(e) => void onDragEnd(e)} onDragCancel={() => void reload()}>
+        <div className="filterbar">
+          <label className="filterbar__label">
+            Afficher
+            <select aria-label="Filtrer les tâches" value={filter} onChange={(e) => setFilter(e.target.value as TaskFilter)}>
+              <option value="all">Toutes les tâches</option>
+              <option value="mine">Mes tâches</option>
+              <option value="unassigned">Non assignées</option>
+              {people.length > 0 && (
+                <optgroup label="Équipe">
+                  {people.map((p) => (
+                    <option key={p.id} value={`person:${p.id}`}>
+                      {personName(p)} ({counts.get(p.id) ?? 0})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </label>
+          {filter !== 'all' && <button className="btn btn--ghost" onClick={() => setFilter('all')}>Tout afficher</button>}
+        </div>
         <main className="board">
           {COLUMNS.map((c) => (
-            <ColumnView key={c.id} {...c} tasks={board[c.id]} onOpen={setEditing} onCreate={create} />
+            <ColumnView key={c.id} {...c} tasks={visible[c.id]} onOpen={setEditing} onCreate={create} people={peopleById} />
           ))}
         </main>
-        <DragOverlay>{dragged && <TaskCard task={dragged} overlay />}</DragOverlay>
+        <DragOverlay>{dragged && <TaskCard task={dragged} overlay person={dragged.assignee_id ? peopleById.get(dragged.assignee_id) : undefined} />}</DragOverlay>
       </DndContext>
       )}
       {editing && (
@@ -142,6 +204,8 @@ export function App() {
           key={editing.id}
           task={editing}
           onClose={() => setEditing(null)}
+          people={people}
+          onCreatePerson={createPerson}
           onOpenEvidence={(id, ms) => {
             setFocusRequest({ id, ms, nonce: Date.now() })
             setEditing(null)
