@@ -181,6 +181,19 @@ class MeetingRepository:
             )
         return self.get(meeting_id)
 
+    def requeue_interrupted(self) -> tuple[int, int]:
+        """Work left `running` by a quit/crash goes back to `pending` (else stuck forever)."""
+        with self.db.tx() as conn:
+            t = conn.execute(
+                "UPDATE meetings SET transcription = 'pending', transcription_error = NULL "
+                "WHERE transcription = 'running'"
+            ).rowcount
+            a = conn.execute(
+                "UPDATE meetings SET analysis = 'pending', analysis_error = NULL "
+                "WHERE analysis = 'running'"
+            ).rowcount
+        return t, a
+
     def pending_analysis(self) -> list[str]:
         with self.db.read() as conn:
             rows = conn.execute(

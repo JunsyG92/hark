@@ -61,6 +61,7 @@ class TranscriptionService:
         self._stop.clear()
         self._thread = threading.Thread(target=self._worker, daemon=True, name="transcriber")
         self._thread.start()
+        self._meetings.requeue_interrupted()  # a transcription cut by a quit/crash restarts
         for meeting_id in self._meetings.pending_transcription():
             self._enqueue(meeting_id)  # e.g. waiting for a model, or interrupted by a restart
 

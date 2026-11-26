@@ -358,3 +358,14 @@ def test_faster_whisper_receives_a_float32_array_not_a_file_path(tmp_path: Path)
     stereo = tmp_path / "s.wav"
     sf.write(str(stereo), np.zeros((8000, 2), dtype="float32"), 8000, subtype="PCM_16")
     assert load_audio(stereo).shape == (16000,)  # mono + resampled to 16 kHz
+
+
+def test_transcription_interrupted_by_a_quit_is_resumed(db: Database, tmp_path: Path):
+    e = Env(db, tmp_path)
+    mid = make_meeting(e.repo, e.audio)
+    e.repo.set_transcription(mid, TranscriptionStatus.RUNNING)  # left behind by a crash
+    e.service.start()
+    try:
+        e.wait(mid, TranscriptionStatus.DONE)
+    finally:
+        e.service.stop()

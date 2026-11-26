@@ -2121,6 +2121,18 @@
           },
           "pull": {
             "$ref": "#/components/schemas/DownloadStatus"
+          },
+          "step": {
+            "type": "integer",
+            "title": "Step",
+            "description": "LLM calls done for the current meeting.",
+            "default": 0
+          },
+          "steps": {
+            "type": "integer",
+            "title": "Steps",
+            "description": "LLM calls planned for the current meeting.",
+            "default": 0
           }
         },
         "additionalProperties": false,
@@ -2132,7 +2144,9 @@
           "model",
           "available",
           "availability_error",
-          "pull"
+          "pull",
+          "step",
+          "steps"
         ],
         "title": "AnalysisStatusInfo"
       },

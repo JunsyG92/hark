@@ -105,6 +105,7 @@ class AnalysisService:
         self._stop = threading.Event()
         self._avail: tuple[float, bool, str | None] = (0.0, False, None)
         self._pull = DownloadStatus(state="idle")
+        self._step = (0, 0)
         bus.subscribe(self._on_event, {EventType.TRANSCRIPT_READY})
 
     # ---- lifecycle -------------------------------------------------------------------
@@ -112,6 +113,7 @@ class AnalysisService:
         self._stop.clear()
         self._thread = threading.Thread(target=self._worker, daemon=True, name="analyzer")
         self._thread.start()
+        self._meetings.requeue_interrupted()  # an analysis cut by a quit/crash restarts
         for meeting_id in self._meetings.pending_analysis():
             self._enqueue(meeting_id)
 
@@ -170,6 +172,8 @@ class AnalysisService:
                 available=ok,
                 availability_error=why,
                 pull=self._pull,
+                step=self._step[0] if self._current else 0,
+                steps=self._step[1] if self._current else 0,
             )
 
     def start_pull(self, model: str) -> DownloadStatus:
@@ -233,7 +237,12 @@ class AnalysisService:
         self._meetings.set_analysis(meeting_id, AnalysisStatus.RUNNING)
         try:
             result = run_pipeline(
-                provider, segments, f"{meeting.started_at.astimezone():%Y-%m-%d}", profile, cfg
+                provider,
+                segments,
+                f"{meeting.started_at.astimezone():%Y-%m-%d}",
+                profile,
+                cfg,
+                on_step=lambda done, total: setattr(self, "_step", (done, total)),
             )
         except BudgetExceeded as exc:
             self._meetings.set_analysis(

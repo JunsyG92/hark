@@ -42,3 +42,10 @@ git pull && pnpm install && (cd engine && uv sync) && pnpm --filter @hark/app de
 - La qualité de l'attribution « moi / autres » reste celle des pistes (écho sans casque, étape 4).
 - Pas de détection de doublons entre réunions différentes, ni de fusion avec tes tâches existantes.
 - Le fournisseur cloud est un squelette fonctionnel contre une API OpenAI-compatible, non testé contre un vrai service.
+
+## Correctif : « transcription OK mais pas de bouton pour analyser »
+- La vue détail n'affichait pas l'état de l'analyse et masquait le bouton pendant qu'elle tournait : on ne voyait rien.
+  Désormais : état dans l'en-tête de la réunion, bouton toujours présent (grisé « Analyse en cours… »), bandeau
+  « étape n/N » pendant que le LLM travaille.
+- Une analyse ou une transcription interrompue (app fermée / plantage) restait bloquée « en cours » pour toujours.
+  Au démarrage, ce travail repasse « en attente » et est relancé automatiquement (tests de non-régression).

@@ -577,6 +577,8 @@ class AnalysisStatusInfo(Strict):
     available: bool
     availability_error: str | None
     pull: DownloadStatus
+    step: int = Field(default=0, description="LLM calls done for the current meeting.")
+    steps: int = Field(default=0, description="LLM calls planned for the current meeting.")
 
 
 class ProgressSettings(Strict):

@@ -50,7 +50,9 @@ export function MeetingsView({
   }, [reload])
 
   // Keep the list fresh while something is being processed.
-  const busy = meetings.some((m) => m.status === 'recording' || m.transcription === 'running' || m.transcription === 'pending')
+  const busy = meetings.some(
+    (m) => m.status === 'recording' || ['running', 'pending'].includes(m.transcription) || ['running', 'pending'].includes(m.analysis),
+  )
   useEffect(() => {
     if (!busy) return
     const id = window.setInterval(() => document.visibilityState === 'visible' && void reload(), 3000)
@@ -155,6 +157,7 @@ function MeetingDetail({
   const [segments, setSegments] = useState<TranscriptSegment[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
+  const [steps, setSteps] = useState<{ step: number; steps: number; model: string } | null>(null)
   const [title, setTitle] = useState(meeting.title)
   const focusRef = useRef<HTMLLIElement | null>(null)
 
@@ -168,6 +171,22 @@ function MeetingDetail({
       alive = false
     }
   }, [api, meeting.id, meeting.transcription, meeting.analysis])
+
+  // While the LLM works (can take minutes locally), show where it is.
+  useEffect(() => {
+    if (meeting.analysis !== 'running') return setSteps(null)
+    let alive = true
+    const tick = () =>
+      void api.analysisStatus().then((s) => {
+        if (alive && s.current_meeting_id === meeting.id) setSteps({ step: s.step, steps: s.steps, model: s.model })
+      }).catch(() => undefined)
+    tick()
+    const id = window.setInterval(tick, 2000)
+    return () => {
+      alive = false
+      window.clearInterval(id)
+    }
+  }, [api, meeting.id, meeting.analysis])
 
   useEffect(() => {
     focusRef.current?.scrollIntoView?.({ block: 'center' })
@@ -232,10 +251,21 @@ function MeetingDetail({
         {formatDateTime(meeting.started_at)} · {durationLabel(meeting.duration_ms)}
         {meeting.language ? ` · ${meeting.language}` : ''}
         {meeting.app ? ` · ${meeting.app}` : ''} · {transcriptionLabel(meeting)}
+        {analysisLabel(meeting) ? ` · ${analysisLabel(meeting)}` : ''}
       </p>
       {waitingModel && <p className="banner banner--info">Aucun modèle de transcription installé : ouvre Réglages → Transcription et télécharge-en un. L’audio est conservé en attendant.</p>}
       {meeting.analysis === 'pending' && meeting.analysis_error?.startsWith('llm_unavailable') && (
         <p className="banner banner--info">Analyse en attente : {meeting.analysis_error.replace('llm_unavailable: ', '')} (Réglages → Analyse IA).</p>
+      )}
+      {meeting.analysis === 'running' && (
+        <p className="banner banner--info" role="status">
+          Analyse en cours{steps && steps.steps > 0 ? ` : étape ${Math.min(steps.step + 1, steps.steps)}/${steps.steps}` : '…'}
+          {steps?.model ? ` (${steps.model})` : ''}. Avec un modèle local, cela peut prendre plusieurs minutes ; les tâches
+          arriveront dans « À valider ».
+        </p>
+      )}
+      {meeting.analysis === 'pending' && !meeting.analysis_error && (
+        <p className="banner banner--info" role="status">Analyse en file d’attente…</p>
       )}
       {meeting.analysis === 'failed' && <p className="banner">L’analyse a échoué ({meeting.analysis_error}).</p>}
       {meeting.transcription === 'failed' && <p className="banner">La transcription a échoué ({meeting.transcription_error}). L’audio est conservé.</p>}
@@ -244,9 +274,14 @@ function MeetingDetail({
         {meeting.audio_available && meeting.status === 'recorded' && meeting.transcription !== 'running' && (
           <button className="btn" onClick={() => void retry()}>{meeting.transcription === 'done' ? 'Retranscrire' : 'Transcrire'}</button>
         )}
-        {meeting.transcription === 'done' && meeting.analysis !== 'running' && (
-          <button className="btn" onClick={() => void analyze(meeting.analysis === 'done')} title={meeting.analysis === 'done' ? 'Relance l’IA même si rien n’a changé (consomme des tokens)' : undefined}>
-            {meeting.analysis === 'done' ? 'Ré-analyser' : 'Analyser'}
+        {meeting.transcription === 'done' && (
+          <button
+            className="btn"
+            disabled={meeting.analysis === 'running'}
+            onClick={() => void analyze(meeting.analysis === 'done')}
+            title={meeting.analysis === 'done' ? 'Relance l’IA même si rien n’a changé (consomme des tokens)' : undefined}
+          >
+            {meeting.analysis === 'running' ? 'Analyse en cours…' : meeting.analysis === 'done' ? 'Ré-analyser' : 'Analyser'}
           </button>
         )}
         <span className="spacer" />

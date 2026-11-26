@@ -531,3 +531,36 @@ def test_schema_sent_to_the_llm_is_flat_and_matches_the_validator():
         == ""
     )
     assert parse_due("") is None and parse_timestamp("") is None
+
+
+def test_work_interrupted_by_a_quit_is_resumed_at_start(db: Database, tmp_path: Path):
+    """Regression: a meeting left `running` (closed mid-analysis) stayed stuck, no button."""
+    e = Env(db, tmp_path)
+    mid = e.meeting()
+    e.meetings.set_analysis(mid, AnalysisStatus.RUNNING)  # what a crash leaves behind
+    e.service.start()
+    try:
+        e.wait(mid, AnalysisStatus.DONE)
+    finally:
+        e.service.stop()
+
+
+def test_status_reports_the_steps_of_the_running_analysis(db: Database, tmp_path: Path):
+    seen: list[tuple[int, int]] = []
+    segs = [seg(i, Speaker.OTHERS, i * 3, "contenu de réunion " * 30) for i in range(30)]
+    cfg = LLMSettings(chunk_tokens=1000, max_tokens_per_meeting=100_000)
+    run_pipeline(
+        ScriptedProvider(), segs, "d", PROFILE, cfg, on_step=lambda d, t: seen.append((d, t))
+    )
+    total = seen[0][1]
+    assert seen[0] == (0, total) and seen[-1] == (total - 1, total) and total > 2
+    one = []
+    run_pipeline(
+        ScriptedProvider(),
+        SEGS,
+        "d",
+        PROFILE,
+        LLMSettings(),
+        on_step=lambda d, t: one.append((d, t)),
+    )
+    assert one == [(0, 1)]

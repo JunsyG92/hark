@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -174,6 +175,7 @@ def run_pipeline(
     meeting_date: str,
     profile: UserProfile,
     cfg: LLMSettings,
+    on_step: Callable[[int, int], None] | None = None,
 ) -> PipelineResult:
     lines = to_lines(segments, profile.name)
     chunks = chunk_lines(lines, cfg.chunk_tokens)
@@ -186,6 +188,14 @@ def run_pipeline(
             f"budget {cfg.max_tokens_per_meeting}) : augmente le budget ou la taille des blocs"
         )
     budget = Budget(cfg.max_tokens_per_meeting)
+    total = 1 if len(chunks) == 1 else len(chunks) + 1  # per-chunk summaries + one final pass
+    step = 0
+
+    def tick() -> None:
+        if on_step:
+            on_step(step, total)
+
+    tick()
 
     if len(chunks) == 1:
         body, from_notes = chunks[0].text, False
@@ -200,6 +210,8 @@ def run_pipeline(
             )
             budget.add(res.tokens_in or chunk.tokens, res.tokens_out or est_tokens(res.text))
             notes.append(res.text.strip())
+            step += 1
+            tick()
         body, from_notes = "\n\n".join(notes), True
 
     user = final_user_prompt(body, meeting_date, profile, from_notes)

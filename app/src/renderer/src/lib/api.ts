@@ -152,6 +152,8 @@ export interface AnalysisStatusInfo {
   available: boolean
   availability_error: string | null
   pull: { state: 'idle' | 'downloading' | 'done' | 'error'; model: string | null; error: string | null }
+  step: number
+  steps: number
 }
 
 export interface ProfileDocument {

@@ -135,3 +135,28 @@ describe('Analysis settings', () => {
     void waitFor
   })
 })
+
+describe('analysis button and state (regression: « no button to analyze »)', () => {
+  it('while running: state visible, disabled button, step n/N', async () => {
+    const { api } = bridge({
+      'GET /v1/meetings': [meeting({ analysis: 'running' })],
+      'GET /v1/meetings/m1/transcript': [],
+      'GET /v1/analysis/status': { queue: [], current_meeting_id: 'm1', provider: 'ollama', model: 'qwen2.5:7b-instruct', available: true, availability_error: null, pull: { state: 'idle', model: null, error: null }, step: 1, steps: 4 },
+    })
+    await act(async () => void render(<MeetingsView api={createApi(api)} onError={() => {}} />))
+    await act(async () => fireEvent.click(await screen.findByText('Revue budget')))
+    const btn = await screen.findByText('Analyse en cours…')
+    expect((btn as HTMLButtonElement).disabled).toBe(true)
+    expect(await screen.findByText(/étape 2\/4/)).toBeTruthy()
+    expect(screen.getAllByText(/analyse en cours/).length).toBeGreaterThan(0)
+  })
+
+  it('never analyzed: the button is there and says Analyser', async () => {
+    const { api, calls } = bridge({ 'GET /v1/meetings': [meeting({ analysis: 'none' })], 'GET /v1/meetings/m1/transcript': [] })
+    await act(async () => void render(<MeetingsView api={createApi(api)} onError={() => {}} />))
+    await act(async () => fireEvent.click(await screen.findByText('Revue budget')))
+    expect(screen.getByText(/non analysée/)).toBeTruthy()
+    await act(async () => fireEvent.click(screen.getByText('Analyser')))
+    expect(calls).toContain('POST /v1/meetings/m1/analyze')
+  })
+})
