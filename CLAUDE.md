@@ -29,7 +29,7 @@ cd engine && uv run pytest -q              # tests moteur
 cd engine && uv run hark-engine --port 0   # moteur seul (handshake JSON sur stdout)
 cd engine && uv run hark-contracts         # régénère /contracts depuis les modèles Pydantic
 pnpm contracts:types                       # régénère app/src/renderer/src/lib/contracts.gen.ts
-pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smoke test Electron
+pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --filter @hark/app e2e   # smoke test Electron
 ```
 
 ## Organisation
@@ -67,6 +67,8 @@ pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smo
 - `HARK_FAKE_LLM=1` : LLM factice déterministe (2 tâches, résumé) pour les tests/e2e. Le vrai Ollama n'est testé que contre
   un faux serveur HTTP local (contrat de l'API) : il n'a pas été exécuté en CI.
 - Les tâches créées par l'analyse passent par `TaskRepository.propose` : **toujours** `to_validate`.
+- Le kanban est un **panneau latéral** étroit (`panelGeometry.ts`) : en e2e, lancer Xvfb avec un grand écran
+  (`xvfb-run -a -s "-screen 0 1600x1000x24"`), sinon les sections du bas sont hors écran.
 - `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions

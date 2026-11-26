@@ -16,7 +16,7 @@ trap 'rm -f "$trace"' EXIT
 
 (cd "$root/app" && pnpm -s build >/dev/null)
 cd "$root/app"
-xvfb-run -a dbus-run-session -- \
+xvfb-run -a -s "-screen 0 1600x1000x24" dbus-run-session -- \
   strace -f -qq -e trace=connect,sendto,sendmsg -s 300 -o "$trace" node e2e/smoke.cjs >/dev/null
 
 python3 - "$trace" <<'PY'

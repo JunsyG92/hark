@@ -28,7 +28,6 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   app.process().stdout.on('data', (d) => logs.push(String(d)))
   app.process().stderr.on('data', (d) => logs.push(String(d)))
   const win = await kanbanWindow(app)
-  await win.setViewportSize({ width: 1180, height: 720 })
   await win.waitForSelector('[data-quick-add="todo"]')
   for (const t of ['Préparer la démo client', 'Relire le contrat']) {
     await win.fill('[data-quick-add="todo"]', t)
@@ -52,6 +51,19 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
     for (let i = 0; i < 5; i++) { w.hide(); const t = performance.now(); w.show(); w.focus(); out.push(performance.now() - t) }
     return out
   })
+  // --- stacked sections collapse and expand (side panel)
+  await win.click('[data-column=done] .column__header')
+  if ((await win.locator('[data-column=done] [data-testid=task-card]').count()) !== 0) throw new Error('collapse failed')
+  if ((await win.getAttribute('[data-column=done] .column__header', 'aria-expanded')) !== 'false') throw new Error('aria-expanded not updated')
+  await win.click('[data-column=done] .column__header')
+  await win.waitForSelector('[data-column=done] [data-testid=task-card]')
+  const bounds = await app.evaluate(({ BrowserWindow, screen }) => {
+    const w = BrowserWindow.getAllWindows().find((x) => x.webContents.getURL().includes('index.html'))
+    return { win: w.getBounds(), area: screen.getPrimaryDisplay().workArea }
+  })
+  if (bounds.win.x + bounds.win.width !== bounds.area.x + bounds.area.width || bounds.win.height !== bounds.area.height) {
+    throw new Error('panel is not docked on the right: ' + JSON.stringify(bounds))
+  }
   // --- consent toast (step 2): a test detection must show the toast; "Non" must start the cooldown
   const call = (method, path, body) => win.evaluate((r) => window.hark.api(r), { method, path, body })
   const prompted = await call('POST', '/v1/detection/test')
@@ -143,6 +155,8 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   await win.click('button.tab:has-text("Réunions")')
   await win.click('.meeting-row:has-text("Revue budget Q1")')
   await win.waitForSelector('.transcript__row:has-text("Bonjour à tous")')
+  await win.screenshot({ path: join(outDir, 'meeting-detail.png') })
+  await win.click('.detail__back')
   await win.fill('.meetings__search', 'budget')
   await win.waitForSelector('mark')
   await win.screenshot({ path: join(outDir, 'meetings.png') })
@@ -180,6 +194,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   await win.waitForSelector('.transcript__row--focus:has-text("budget")')
   await win.waitForSelector('text=Le budget est validé avec une réserve')
   await win.screenshot({ path: join(outDir, 'analysis.png') })
+  await win.click('.detail__back')
   await win.click('button.tab:has-text("Kanban")')
   // default retention: audio removed right after a successful transcription, transcript kept
   await call('PATCH', '/v1/settings/transcription', { retention_days: 0 })

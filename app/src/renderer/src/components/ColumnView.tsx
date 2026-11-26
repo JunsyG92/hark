@@ -12,9 +12,12 @@ interface Props {
   onOpen: (t: Task) => void
   onCreate: (column: Column, title: string) => Promise<void>
   people?: Map<string, Person>
+  collapsed?: boolean
+  onToggle?: (column: Column) => void
 }
 
-export function ColumnView({ id, label, hint, tasks, onOpen, onCreate, people }: Props) {
+/** One stacked, collapsible section of the side panel. A collapsed section still accepts drops. */
+export function ColumnView({ id, label, hint, tasks, onOpen, onCreate, people, collapsed = false, onToggle }: Props) {
   const { setNodeRef, isOver } = useDroppable({ id })
   const [draft, setDraft] = useState('')
 
@@ -31,30 +34,49 @@ export function ColumnView({ id, label, hint, tasks, onOpen, onCreate, people }:
     await onCreate(id, title)
   }
 
+  const mine = tasks.filter((t) => t.is_mine).length
   return (
-    <section className={`column${isOver ? ' column--over' : ''}`} aria-label={label} data-column={id}>
-      <header className="column__header">
+    <section
+      ref={setNodeRef}
+      className={`column${isOver ? ' column--over' : ''}${collapsed ? ' column--collapsed' : ''}`}
+      aria-label={label}
+      data-column={id}
+    >
+      <button
+        type="button"
+        className="column__header"
+        aria-expanded={!collapsed}
+        aria-controls={`col-${id}`}
+        onClick={() => onToggle?.(id)}
+      >
+        <svg className="chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4l4 4-4 4" /></svg>
         <h2>{label}</h2>
+        {id === 'to_validate' && mine > 0 && <span className="column__mine">{mine} pour toi</span>}
         <span className="column__count">{tasks.length}</span>
-      </header>
-      {hint && <p className="column__hint">{hint}</p>}
-      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div ref={setNodeRef} className="column__list">
-          {tasks.map((t) => (
-            <TaskCard key={t.id} task={t} onOpen={onOpen} person={t.assignee_id ? people?.get(t.assignee_id) : undefined} />
-          ))}
+      </button>
+      {!collapsed && (
+        <div id={`col-${id}`} className="column__body">
+          {hint && <p className="column__hint">{hint}</p>}
+          <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+            <div className="column__list">
+              {tasks.map((t) => (
+                <TaskCard key={t.id} task={t} onOpen={onOpen} person={t.assignee_id ? people?.get(t.assignee_id) : undefined} />
+              ))}
+              {tasks.length === 0 && <p className="column__empty">Rien ici.</p>}
+            </div>
+          </SortableContext>
+          {id !== 'to_validate' && (
+            <input
+              className="quick-add"
+              data-quick-add={id}
+              placeholder="+ Nouvelle tâche"
+              value={draft}
+              maxLength={200}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={submit}
+            />
+          )}
         </div>
-      </SortableContext>
-      {id !== 'to_validate' && (
-        <input
-          className="quick-add"
-          data-quick-add={id}
-          placeholder="+ Nouvelle tâche (Entrée)"
-          value={draft}
-          maxLength={200}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={submit}
-        />
       )}
     </section>
   )

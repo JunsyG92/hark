@@ -72,58 +72,72 @@ export function MeetingsView({
 
   const current = selected ? meetings.find((m) => m.id === selected.id) : undefined
 
+  if (current && selected) {
+    return (
+      <div className="meetings meetings--detail">
+        <button className="detail__back chip" onClick={() => setSelected(null)}>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4L6 8l4 4" /></svg>
+          Réunions
+        </button>
+        <MeetingDetail key={current.id} api={api} meeting={current} focusMs={selected.focusMs} onChanged={reload} onGone={() => setSelected(null)} onError={onError} />
+      </div>
+    )
+  }
+
   return (
     <div className="meetings">
-      <aside className="meetings__side">
+      <div className="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" /><path d="M20 20l-4.2-4.2" /></svg>
         <input
           className="meetings__search"
           type="search"
-          placeholder="Rechercher (titres, transcriptions…)"
+          placeholder="Rechercher dans les réunions…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Rechercher dans les réunions"
         />
-        {hits !== null ? (
-          <ul className="meetings__list" aria-label="Résultats">
-            {hits.length === 0 && <li className="meetings__empty">Aucun résultat.</li>}
-            {hits.map((h, i) => (
-              <li key={`${h.meeting_id}-${h.start_ms}-${i}`}>
-                <button className="meeting-row" onClick={() => setSelected({ id: h.meeting_id, focusMs: h.start_ms })}>
-                  <strong>{h.meeting_title || 'Réunion sans titre'}</strong>
-                  <span className="meeting-row__meta">
-                    {h.kind === 'title' ? 'titre' : `${h.start_ms !== null ? timestamp(h.start_ms) : ''} ${h.speaker ? SPEAKER[h.speaker] : ''}`}
-                  </span>
-                  <span className="meeting-row__snippet"><Snippet text={h.snippet} /></span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <ul className="meetings__list" aria-label="Réunions">
-            {meetings.length === 0 && <li className="meetings__empty">Aucune réunion pour l’instant. Clique sur « ● Enregistrer » pendant une réunion.</li>}
-            {meetings.map((m) => (
-              <li key={m.id}>
-                <button className={`meeting-row${selected?.id === m.id ? ' meeting-row--active' : ''}`} onClick={() => setSelected({ id: m.id, focusMs: null })}>
-                  <strong>{displayTitle(m)}</strong>
-                  <span className="meeting-row__meta">
-                    {formatDateTime(m.started_at)} · {durationLabel(m.duration_ms)} · {m.task_count} tâche{m.task_count > 1 ? 's' : ''}
-                  </span>
+        <span className="search__count">{hits !== null ? `${hits.length} résultat${hits.length > 1 ? 's' : ''}` : `${meetings.length} réunion${meetings.length > 1 ? 's' : ''}`}</span>
+      </div>
+      {hits !== null ? (
+        <ul className="meetings__list" aria-label="Résultats">
+          {hits.length === 0 && <li className="meetings__empty">Aucun résultat.</li>}
+          {hits.map((h, i) => (
+            <li key={`${h.meeting_id}-${h.start_ms}-${i}`}>
+              <button className="meeting-row" onClick={() => setSelected({ id: h.meeting_id, focusMs: h.start_ms })}>
+                <span className="meeting-row__title">{h.meeting_title || 'Réunion sans titre'}</span>
+                <span className="meeting-row__time">
+                  {h.kind === 'title' ? 'titre' : h.kind === 'summary' ? 'résumé' : `${h.start_ms !== null ? timestamp(h.start_ms) : ''} ${h.speaker ? SPEAKER[h.speaker] : ''}`}
+                </span>
+                <span className="meeting-row__snippet"><Snippet text={h.snippet} /></span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="meetings__list" aria-label="Réunions">
+          {meetings.length === 0 && (
+            <li className="meetings__empty">
+              <b>Aucune réunion pour l’instant</b>
+              Clique sur « ● Enregistrer » pendant une réunion.
+            </li>
+          )}
+          {meetings.map((m) => (
+            <li key={m.id}>
+              <button className="meeting-row" onClick={() => setSelected({ id: m.id, focusMs: null })}>
+                <span className="meeting-row__title">{displayTitle(m)}</span>
+                <span className="meeting-row__time">{formatDateTime(m.started_at)}</span>
+                <span className="meeting-row__meta">
+                  <i className={`dot dot--${m.analysis === 'done' ? 'ok' : m.transcription === 'failed' || m.analysis === 'failed' ? 'err' : 'wait'}`} />
+                  {durationLabel(m.duration_ms)} · {m.task_count} tâche{m.task_count > 1 ? 's' : ''} ·{' '}
                   <span className={`meeting-row__status meeting-row__status--${m.transcription}`}>
                     {transcriptionLabel(m)}{analysisLabel(m) ? ` · ${analysisLabel(m)}` : ''}
                   </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </aside>
-      <section className="meetings__detail">
-        {current && selected ? (
-          <MeetingDetail key={current.id} api={api} meeting={current} focusMs={selected.focusMs} onChanged={reload} onGone={() => setSelected(null)} onError={onError} />
-        ) : (
-          <p className="meetings__empty">Choisis une réunion pour voir sa transcription.</p>
-        )}
-      </section>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

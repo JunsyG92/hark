@@ -1,9 +1,11 @@
-import { BrowserWindow, shell } from 'electron'
+import { BrowserWindow, screen, shell } from 'electron'
+import { panelBounds } from './panelGeometry'
 import { join } from 'node:path'
 
 /**
- * The kanban window is created once at startup and kept hidden, so the global
- * shortcut only has to show() it: that is what keeps the open time < 300 ms.
+ * The kanban is a side panel docked on the right of the screen (frameless, transparent around a
+ * rounded surface, like aska). It is created once at startup and kept hidden, so the global shortcut
+ * only has to show() it: that is what keeps the open time < 300 ms.
  */
 export class KanbanWindow {
   private win: BrowserWindow | null = null
@@ -12,14 +14,20 @@ export class KanbanWindow {
   constructor(private readonly log: (msg: string) => void) {}
 
   create(): BrowserWindow {
+    const area = screen.getPrimaryDisplay().workArea
     const win = new BrowserWindow({
-      width: 1180,
-      height: 760,
-      minWidth: 720,
-      minHeight: 480,
+      ...panelBounds(area),
       show: false,
+      frame: false,
+      transparent: true,
+      backgroundColor: '#00000000',
+      hasShadow: false, // the shadow is drawn by the page, inside the transparent margin
+      resizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      skipTaskbar: true,
+      alwaysOnTop: true,
       title: 'Hark',
-      backgroundColor: '#111318',
       autoHideMenuBar: true,
       icon: join(__dirname, '../../assets/icon.png'),
       webPreferences: {
@@ -69,6 +77,8 @@ export class KanbanWindow {
     if (!win) return
     const t0 = performance.now()
     if (win.isMinimized()) win.restore()
+    // follow the user: dock on the screen where the cursor is
+    win.setBounds(panelBounds(screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea))
     win.show()
     win.focus()
     win.webContents.send('hark:shown')

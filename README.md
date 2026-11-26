@@ -2,7 +2,7 @@
 
 Hark est une application de bureau **locale** :
 
-- un **kanban** qui s'ouvre instantanément avec `Ctrl+Alt+K` ;
+- un **kanban en panneau latéral** (à droite de l'écran, colonnes empilées et repliables) qui s'ouvre instantanément avec `Ctrl+Alt+K` ;
 - **détection des réunions** (une notification te demande ; l'enregistrement viendra à l'étape 3, **uniquement après ton clic**), transcription
   locale (faster-whisper), résumé et proposition de tâches (Ollama) dans la colonne « À valider » ;
 - un **historique** consultable et cherchable des réunions ;
@@ -122,6 +122,13 @@ n'est **jamais** ré-analysée (cache par hash). Seul un clic sur « Ré-analyse
 **Fournisseur cloud** : désactivé par défaut. Il ne s'active que si tu coches explicitement que le texte de tes réunions
 quittera ta machine, fournis une clé (rangée dans le gestionnaire d'identifiants) et le sélectionnes.
 
+## Le panneau
+
+`Ctrl+Alt+K` fait glisser Hark depuis la droite de l'écran où se trouve ta souris (toute la hauteur, au-dessus des autres
+fenêtres) ; `Échap` ou × le masque. Les quatre colonnes sont **empilées** ; clique sur un en-tête (À valider, À faire,
+En cours, Fait) pour le **replier/déplier** : ton choix est mémorisé, et une colonne repliée accepte toujours qu'on y dépose
+une tâche. Le style (surfaces chaudes, accent terracotta, thème clair/sombre automatique) reprend celui d'[aska](https://github.com/JunsyG92/aska).
+
 ## Équipe et suivi des tâches
 
 Réglages → **Équipe** : la liste des personnes de ton équipe (Prénom, Nom, e-mail ; une adresse = une personne).
@@ -159,7 +166,7 @@ Les intégrations peuvent relier une tâche proposée à un membre existant via 
 
 ```bash
 scripts/check.sh            # lint + tests (Python et TypeScript)
-pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e   # smoke test de l'app réelle
+pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --filter @hark/app e2e   # smoke test de l'app réelle
 ```
 
 Architecture : [`docs/architecture.md`](docs/architecture.md) · Décisions : [`docs/decisions.md`](docs/decisions.md)

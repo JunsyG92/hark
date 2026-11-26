@@ -23,7 +23,7 @@ jobs:
       - run: scripts/check.sh
       - name: Electron smoke test
         if: runner.os == 'Linux'
-        run: pnpm --filter @hark/app build && xvfb-run -a pnpm --filter @hark/app e2e
+        run: pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --filter @hark/app e2e
       - name: Local-first network audit (no outbound connection)
         if: runner.os == 'Linux'
         run: sudo apt-get install -y strace && scripts/audit-network.sh

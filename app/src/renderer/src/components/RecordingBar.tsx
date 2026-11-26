@@ -64,7 +64,7 @@ export function RecordingBar({ api, onError }: { api: HarkApi; onError: (msg: st
   }
   return (
     <div className="recbar">
-      {reminder && <span className="recbar__hint">Pense à informer les participants.</span>}
+      {reminder && <span className="recbar__hint" role="status">Pense à informer les participants.</span>}
       <button className="btn" data-testid="rec-button" onClick={() => void start()}>
         ● Enregistrer
       </button>
