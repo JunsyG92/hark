@@ -305,6 +305,11 @@ export function App() {
             await api.deleteTask(editing.id)
             await reload()
           }}
+          onMove={async (column) => {
+            await api.moveTask(editing.id, column, board[column].length)
+            await reload()
+            void refreshProgress(true)
+          }}
           onAccept={async () => {
             await api.moveTask(editing.id, 'todo', board.todo.length)
             await reload()

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import type { Person, PersonDraft, Priority, Task, TaskPatch } from '../lib/api'
-import { sourceLabel } from '../lib/board'
+import type { Column, Person, PersonDraft, Priority, Task, TaskPatch } from '../lib/api'
+import { COLUMNS, sourceLabel } from '../lib/board'
 import { PersonPicker } from './PersonPicker'
 
 interface Props {
@@ -12,9 +12,11 @@ interface Props {
   onOpenEvidence?: (meetingId: string, startMs: number) => void
   people?: Person[]
   onCreatePerson?: (draft: PersonDraft) => Promise<Person>
+  /** Move the task to another column (end of it), without drag and drop. */
+  onMove?: (column: Column) => Promise<void>
 }
 
-export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEvidence, people = [], onCreatePerson }: Props) {
+export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEvidence, people = [], onCreatePerson, onMove }: Props) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description)
   const [assignee, setAssignee] = useState(task.assignee)
@@ -26,14 +28,31 @@ export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEv
 
   useEffect(() => first.current?.focus(), [])
 
+  function currentPatch(): TaskPatch {
+    const patch: TaskPatch = { title: title.trim(), description, due: due || null, priority }
+    if (assigneeId !== task.assignee_id) patch.assignee_id = assigneeId // the engine sets the name
+    else if (!assigneeId) patch.assignee = assignee.trim()
+    return patch
+  }
+
   async function submit(e: FormEvent) {
     e.preventDefault()
     if (!title.trim()) return setError('Le titre est obligatoire')
     try {
-      const patch: TaskPatch = { title: title.trim(), description, due: due || null, priority }
-      if (assigneeId !== task.assignee_id) patch.assignee_id = assigneeId // the engine sets the name
-      else if (!assigneeId) patch.assignee = assignee.trim()
-      await onSave(patch)
+      await onSave(currentPatch())
+      onClose()
+    } catch (err) {
+      setError(String((err as Error).message))
+    }
+  }
+
+  /** Changing the column saves what was typed first, then moves the task, then closes. */
+  async function moveTo(column: Column) {
+    if (!onMove || column === task.column) return
+    if (!title.trim()) return setError('Le titre est obligatoire')
+    try {
+      await onSave(currentPatch())
+      await onMove(column)
       onClose()
     } catch (err) {
       setError(String((err as Error).message))
@@ -46,6 +65,16 @@ export function TaskEditor({ task, onSave, onDelete, onAccept, onClose, onOpenEv
         <input ref={first} className="modal__title" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} aria-label="Titre" />
         <textarea value={description} rows={5} maxLength={10000} placeholder="Description" onChange={(e) => setDescription(e.target.value)} />
         <div className="modal__row">
+          {onMove && (
+            <label>
+              Colonne
+              <select aria-label="Colonne" value={task.column} onChange={(e) => void moveTo(e.target.value as Column)}>
+                {COLUMNS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.label}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label>
             Assigné
             <PersonPicker

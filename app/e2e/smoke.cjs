@@ -56,6 +56,13 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
     for (let i = 0; i < 5; i++) { w.hide(); const t = performance.now(); w.show(); w.focus(); out.push(performance.now() - t) }
     return out
   })
+  // --- move a task with the column select (no drag and drop)
+  await win.locator('[data-testid=task-card]', { hasText: 'Corriger le bug' }).click()
+  await win.selectOption('select[aria-label="Colonne"]', 'todo')
+  await win.waitForSelector('[data-column=todo] [data-testid=task-card]:has-text("Corriger le bug")')
+  await win.locator('[data-testid=task-card]', { hasText: 'Corriger le bug' }).click()
+  await win.selectOption('select[aria-label="Colonne"]', 'in_progress')
+  await win.waitForSelector('[data-column=in_progress] [data-testid=task-card]:has-text("Corriger le bug")')
   // --- stacked sections collapse and expand (side panel)
   await win.click('[data-column=done] .column__header')
   if ((await win.locator('[data-column=done] [data-testid=task-card]').count()) !== 0) throw new Error('collapse failed')

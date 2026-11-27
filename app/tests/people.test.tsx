@@ -151,3 +151,30 @@ describe('pin button', () => {
     expect(pin.getAttribute('aria-pressed')).toBe('true')
   })
 })
+
+describe('moving a task with a select (no drag and drop)', () => {
+  it('shows the current column, saves edits first, then moves and closes', async () => {
+    const order: string[] = []
+    const onSave = vi.fn(async () => void order.push('save'))
+    const onMove = vi.fn(async (c: string) => void order.push(`move:${c}`))
+    const onClose = vi.fn()
+    render(<TaskEditor task={task({ column: 'todo' })} onSave={onSave} onMove={onMove} onDelete={async () => {}} onAccept={async () => {}} onClose={onClose} />)
+    const select = screen.getByLabelText('Colonne') as HTMLSelectElement
+    expect(select.value).toBe('todo')
+    expect([...select.options].map((o) => o.textContent)).toEqual(['À valider', 'À faire', 'En cours', 'Fait'])
+    fireEvent.change(screen.getByLabelText('Titre'), { target: { value: 'Titre modifié' } })
+    await act(async () => fireEvent.change(select, { target: { value: 'in_progress' } }))
+    expect(order).toEqual(['save', 'move:in_progress'])
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ title: 'Titre modifié' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('does not move when the title is empty', async () => {
+    const onMove = vi.fn(async () => {})
+    render(<TaskEditor task={task({})} onSave={async () => {}} onMove={onMove} onDelete={async () => {}} onAccept={async () => {}} onClose={() => {}} />)
+    fireEvent.change(screen.getByLabelText('Titre'), { target: { value: '  ' } })
+    await act(async () => fireEvent.change(screen.getByLabelText('Colonne'), { target: { value: 'done' } }))
+    expect(onMove).not.toHaveBeenCalled()
+    expect(screen.getByText('Le titre est obligatoire')).toBeTruthy()
+  })
+})

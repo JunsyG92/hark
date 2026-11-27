@@ -144,6 +144,9 @@ Désactivable et objectif réglable dans Réglages → Progression. Tout reste l
 
 ## Équipe et suivi des tâches
 
+Pour changer une tâche de colonne sans glisser-déposer : clique dessus, puis choisis la **Colonne** dans la fenêtre
+(ce que tu avais modifié est enregistré, puis la tâche est déplacée en fin de colonne).
+
 Réglages → **Équipe** : la liste des personnes de ton équipe (Prénom, Nom, e-mail ; une adresse = une personne).
 Dans une tâche, « Assigné à » propose ces personnes, ou « + Ajouter une personne… » pour la créer à la volée.
 Le kanban se filtre en haut : **Toutes / Mes tâches / Non assignées / chaque membre** (avec son nombre de tâches ouvertes) ;
