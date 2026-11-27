@@ -22,7 +22,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   const app = await electron.launch({
     executablePath: electronPath,
     args: [...sandboxArgs, appDir],
-    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1' },
+    env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1', XDG_CONFIG_HOME: join(outDir, 'config') },
   })
   const logs = []
   app.process().stdout.on('data', (d) => logs.push(String(d)))
@@ -230,7 +230,7 @@ const sandboxArgs = process.getuid && process.getuid() === 0 ? ['--no-sandbox'] 
   if (doneTitles.join() !== 'Relire le contrat') throw new Error('drag and drop failed')
   await app.close()
   // restart to verify persistence
-  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1' } })
+  const app2 = await electron.launch({ executablePath: electronPath, args: [...sandboxArgs, appDir], env: { ...process.env, HARK_DATA_DIR: dataDir, HARK_PORT: '0', HARK_FAKE_AUDIO: '1', HARK_FAKE_STT: '1', HARK_FAKE_LLM: '1', XDG_CONFIG_HOME: join(outDir, 'config') } })
   const w2 = await kanbanWindow(app2); await w2.waitForSelector('text=Relire le contrat')
   const persisted = await w2.locator('[data-testid=task-card]').count()
   console.log('persisted:', persisted)

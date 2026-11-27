@@ -73,6 +73,8 @@ pnpm --filter @hark/app build && xvfb-run -a -s "-screen 0 1600x1000x24" pnpm --
 - Le panneau se masque sur perte de focus (`blur.ts`) : toute boîte de dialogue native ouverte depuis le panneau doit passer par
   `KanbanWindow.withDialog()`, et jamais `window.confirm()` dans le renderer (utiliser `window.hark.confirm`).
   Test réel au clic : `xvfb-run -a -s "-screen 0 1600x1000x24" scripts/e2e-outside-click.sh` (openbox, xdotool, xterm).
+- L'e2e isole le profil Electron (`XDG_CONFIG_HOME` temporaire) : l'état mémorisé (colonnes repliées, filtre, épinglage)
+  vit dans `~/.config/Hark` et ne doit jamais fuiter d'un lancement manuel vers les tests.
 - `HARK_FAKE_AUDIO=1` : sources audio synthétiques (ton 440 Hz système, micro quasi muet) pour tester sans périphérique.
 
 ## Conventions
